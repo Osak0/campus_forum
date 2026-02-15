@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>帖子详情</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 16px; }
+    .back-link { margin-bottom: 16px; display: inline-block; }
+    .post-container { border-bottom: 1px solid #ddd; padding-bottom: 16px; margin-bottom: 16px; }
+    .post-title { font-size: 22px; font-weight: bold; margin: 0 0 8px 0; }
+    .post-meta { font-size: 12px; color: #666; margin-bottom: 8px; }
+    .post-content { white-space: pre-wrap; }
+    .comment-list { margin-top: 16px; }
+    .comment-item { border-top: 1px solid #eee; padding: 8px 0; }
+    .comment-meta { font-size: 12px; color: #666; }
+    .comment-content { margin: 4px 0 0 0; }
+    form { margin-top: 16px; }
+    textarea { width: 100%; height: 80px; }
+    input[type="text"] { width: 100%; box-sizing: border-box; }
+    button { margin-top: 8px; padding: 6px 12px; }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; 返回列表</a>
+
+  <div id="post-container">加载帖子中...</div>
+
+  <h2>评论</h2>
+  <div id="comment-list">加载评论中...</div>
+
+  <h3>发表评论</h3>
+  <form id="comment-form">
+    <label>
+      昵称（可选）：
+      <input type="text" id="author_name" />
+    </label>
+    <br /><br />
+    <label>
+      评论内容：
+      <textarea id="comment_content" required></textarea>
+    </label>
+    <br />
+    <button type="submit">提交评论</button>
+  </form>
+
+  <script>
+    const API_BASE = "http://localhost:8000";
+
+    // 从 URL 里解析 ?id=xxx
+    function getPostIdFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("id");
+    }
+
+    const postId = getPostIdFromUrl();
+    if (!postId) {
+      alert("缺少帖子 ID");
+    }
+
+    async function loadPost() {
+      const container = document.getElementById("post-container");
+      try {
+        const res = await fetch(`${API_BASE}/food_posts/${postId}`);
+        if (res.status === 404) {
+          container.textContent = "帖子不存在或已被删除";
+          return;
+        }
+        if (!res.ok) {
+          container.textContent = "加载失败";
+          return;
+        }
+        const post = await res.json();
+        container.innerHTML = `
+          <div class="post-container">
+            <h1 class="post-title">${post.title || post.restaurant_name}</h1>
+            <p class="post-meta">
+              类型：${post.post_type} |
+              城市：${post.city || "未知"} |
+              评分：${post.rating || "无"} |
+              创建时间：${new Date(post.created_at).toLocaleString()}
+            </p>
+            <div class="post-content">${post.content}</div>
+          </div>
+        `;
+      } catch (error) {
+        console.error(error);
+        container.textContent = "请求出错";
+      }
+    }
+
+    async function loadComments() {
+      const list = document.getElementById("comment-list");
+      try {
+        const res = await fetch(`${API_BASE}/food_posts/${postId}/comments`);
+        if (!res.ok) {
+          list.textContent = "加载评论失败";
+          return;
+        }
+        const comments = await res.json();
+
+        if (comments.length === 0) {
+          list.textContent = "还没有评论，快来抢沙发～";
+          return;
+        }
+
+        list.innerHTML = "";
+        comments.forEach(c => {
+          const item = document.createElement("div");
+          item.className = "comment-item";
+          item.innerHTML = `
+            <p class="comment-meta">
+              ${c.author_name || "匿名"} | ${new Date(c.created_at).toLocaleString()}
+            </p>
+            <p class="comment-content">${c.content}</p>
+          `;
+          list.appendChild(item);
+        });
+      } catch (error) {
+        console.error(error);
+        list.textContent = "评论加载出错";
+      }
+    }
+
+    async function submitComment(event) {
+      event.preventDefault();
+      const contentInput = document.getElementById("comment_content");
+      const authorInput = document.getElementById("author_name");
+
+      const payload = {
+        content: contentInput.value,
+        author_name: authorInput.value || null
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/food_posts/${postId}/comments`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          alert("评论失败");
+          return;
+        }
+
+        // 清空表单
+        contentInput.value = "";
+        // 重新加载评论列表
+        loadComments();
+      } catch (error) {
+        console.error(error);
+        alert("请求出错");
+      }
+    }
+
+    document.getElementById("comment-form").addEventListener("submit", submitComment);
+
+    // 初始加载
+    loadPost();
+    loadComments();
+  </script>
+</body>
+</html>
