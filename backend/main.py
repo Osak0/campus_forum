@@ -2,41 +2,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import List
+from .models import UserBase, UserCreate, UserLogin, LoginRequest, PostBase, PostCreate, CommentBase, CommentCreate
 
 app = FastAPI()
 
-class UserBase(BaseModel):
-    user_name: str
-    user_email: EmailStr 
-    
-class UserCreate(UserBase):
-    password: str 
         
-class LoginRequest(BaseModel):
-    user_email: EmailStr
-    
-class UserLogin(LoginRequest):
-    password: str
-
-class PostCreate(BaseModel):
-    author_email: EmailStr
-    title: str
-    content: str
-    
-class PostBase(PostCreate):
-    id: int
-    release_time: str
-    user_name: str
-    
-class CommentCreate(BaseModel):
-    post_id: int
-    user_email: EmailStr
-    content: str = Field(..., max_length=500)
-    
-class CommentBase(CommentCreate):
-    id: int
-    release_time: str
-    user_name: str        
     
 fake_user_db : dict[str,UserCreate] = {}
 fake_post_db: List[PostBase] = []
