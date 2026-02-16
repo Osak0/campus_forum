@@ -48,9 +48,9 @@ async def create_post(request: PostCreate):
     return {"message": "Post created successfully", "post_id": next_post_id - 1}
 
 
-@app.get("/posts/")
+@app.get("/posts/",response_model=List[PostBase])
 async def list_posts():
-    return {"items": fake_post_db}
+    return fake_post_db
 
 
 @app.get("/posts/{post_id}")
