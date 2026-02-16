@@ -1,19 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
-from typing import List
 from .models import UserBase, UserCreate, UserLogin, LoginRequest, PostBase, PostCreate, CommentBase, CommentCreate
 
 app = FastAPI()
 
-        
-    
-fake_user_db : dict[str,UserCreate] = {}
-fake_post_db: List[PostBase] = []
+
+fake_user_db: dict[str, UserCreate] = {}
+fake_post_db: list[PostBase] = []
 next_post_id = 1
-comments_db: List[CommentBase] = []
+comments_db: list[CommentBase] = []
 next_comment_id: int = 1
 
+#注册用户
 @app.post("/create_user/")
 async def create_user(request: UserCreate):
     if request.user_email in fake_user_db:
@@ -21,6 +20,7 @@ async def create_user(request: UserCreate):
     fake_user_db[request.user_email] = request
     return {"message": "User created successfully"}
 
+#登录用户
 @app.post("/login/")
 async def login(request: UserLogin):
     user = fake_user_db.get(request.user_email)
@@ -42,13 +42,13 @@ async def create_post(request: PostCreate):
         "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "user_name": fake_user_db[request.author_email].user_name
     }
-    post=PostBase(**post)
+    post = PostBase(**post)
     fake_post_db.append(post)
     next_post_id += 1
     return {"message": "Post created successfully", "post_id": next_post_id - 1}
 
 
-@app.get("/posts/",response_model=List[PostBase])
+@app.get("/posts/", response_model=list[PostBase])
 async def list_posts():
     return fake_post_db
 
@@ -59,6 +59,7 @@ async def get_post(post_id: int):
         if post.id == post_id:
             return post
     raise HTTPException(status_code=404, detail="Post not found")
+
 
 @app.post("/posts/{post_id}/comments")
 async def create_comment(request: CommentCreate):
@@ -73,20 +74,21 @@ async def create_comment(request: CommentCreate):
         "user_email": request.user_email,
         "user_name": fake_user_db[request.user_email].user_name
     }
-    comment=CommentBase(**comment)
+    comment = CommentBase(**comment)
     comments_db.append(comment)
     next_comment_id += 1
     return {"message": "Comment created successfully", "comment_id": next_comment_id - 1}
-    
 
-@app.get("/posts/{post_id}/comments",response_model=List[CommentBase])
+
+@app.get("/posts/{post_id}/comments", response_model=list[CommentBase])
 async def get_comments(post_id: int):
     post = next((p for p in fake_post_db if p.id == post_id), None)
     if post == None:
         raise HTTPException(status_code=404, detail="Post not found")
-    post_comments = [ c for c in comments_db if c.post_id == post_id ]
+    post_comments = [c for c in comments_db if c.post_id == post_id]
     post_comments = sorted(post_comments, key=lambda c: c.release_time)
     return post_comments
+
 
 @app.get("/")
 async def root():
