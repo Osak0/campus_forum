@@ -27,7 +27,6 @@ class PostBase(PostCreate):
     user_name: str
     
 class CommentCreate(BaseModel):
-    post_id: int
     user_email: EmailStr
     content: str = Field(..., max_length=500)
     

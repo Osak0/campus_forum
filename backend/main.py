@@ -60,7 +60,7 @@ async def get_post(post_id: int):
             return post
     raise HTTPException(status_code=404, detail="Post not found")
 
-@app.post("/posts/{post_id}")
+@app.post("/posts/{post_id}/comments")
 async def create_comment(request: CommentCreate):
     global next_comment_id
     post = next((p for p in fake_post_db if p.id == request.post_id), None)
@@ -68,7 +68,6 @@ async def create_comment(request: CommentCreate):
         raise HTTPException(status_code=404, detail="Post not found")
     comment = {
         "id": next_comment_id,
-        "post_id": request.post_id,
         "content": request.content,
         "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "user_email": request.user_email,
