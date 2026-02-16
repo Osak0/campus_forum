@@ -39,19 +39,17 @@ async def login(request: UserLogin):
 async def create_post(request: PostCreate):
     global next_post_id
     if request.author_email not in fake_user_db:
-        return {"error": "Author not found"}
+        raise HTTPException(status_code=400, detail="Author not found")
     post = {
-        "id": next_post_id,
-        "author_email": request.author_email,
-        "title": request.title,
-        "content": request.content,
+        "id": next_post_id, 
         "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "user_name": fake_user_db[request.author_email].user_name
+        "user_name": fake_user_db[request.author_email].user_name,
+        **request.model_dump()
     }
     post = PostBase(**post)
     fake_post_db.append(post)
     next_post_id += 1
-    return {"message": "Post created successfully", "post_id": next_post_id - 1}
+    return {"message": "Post created successfully", "post_id": post.id}
 
 # 获取帖子列表
 
@@ -63,7 +61,7 @@ async def list_posts():
 # 获取帖子详情
 
 
-@app.get("/posts/{post_id}")
+@app.get("/posts/{post_id}", response_model=PostBase)
 async def get_post(post_id: int):
     for post in fake_post_db:
         if post.id == post_id:
@@ -74,22 +72,24 @@ async def get_post(post_id: int):
 
 
 @app.post("/posts/{post_id}/comments")
-async def create_comment(request: CommentCreate):
+async def create_comment(post_id: int, request: CommentCreate):
     global next_comment_id
-    post = next((p for p in fake_post_db if p.id == request.post_id), None)
+    post = next((p for p in fake_post_db if p.id == post_id), None)
     if post == None:
         raise HTTPException(status_code=404, detail="Post not found")
+    if request.user_email not in fake_user_db:
+        raise HTTPException(status_code=400, detail="User not found")
     comment = {
         "id": next_comment_id,
-        "content": request.content,
-        "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "user_email": request.user_email,
-        "user_name": fake_user_db[request.user_email].user_name
+        "post_id": post_id,
+        "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+        "user_name": fake_user_db[request.user_email].user_name,
+        **request.model_dump()
     }
     comment = CommentBase(**comment)
     comments_db.append(comment)
     next_comment_id += 1
-    return {"message": "Comment created successfully", "comment_id": next_comment_id - 1}
+    return {"message": "Comment created successfully", "comment_id": comment.id}
 
 # 获取评论列表
 
@@ -108,4 +108,4 @@ async def get_comments(post_id: int):
 
 @app.get("/")
 async def root():
-    return {"message": "OK"}
+    return {"message": "The campus forum backend is running!"}
