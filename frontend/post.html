@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>帖子详情</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="detail-page">
+
+    <!-- 顶部导航栏 (带返回按钮) -->
+    <header class="app-header">
+        <a href="javascript:history.back()" class="back-btn">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        <h1 class="page-title">帖子详情</h1>
+        <div class="header-right"></div> <!-- 占位用，保持标题居中 -->
+    </header>
+
+    <!-- 中间内容区域 -->
+    <main class="app-content" id="detail-container">
+        <!-- JS 会在这里填充帖子内容 -->
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i> 加载中...
+        </div>
+    </main>
+
+    <!-- 底部评论框 (固定在底部) -->
+    <footer class="comment-bar">
+        <input type="text" id="comment-input" placeholder="说点什么...">
+        <button id="send-comment-btn">发送</button>
+    </footer>
+
+    <script src="js/post.js"></script>
+</body>
+</html>

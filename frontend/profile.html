@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>我的</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <main class="app-content">
+        <!-- 头部背景卡片 -->
+        <div class="profile-header">
+            <div class="avatar-large">
+                <i class="fas fa-user"></i>
+            </div>
+            <h2 id="username-display">未登录</h2>
+            <p id="email-display">点击下方按钮登录</p>
+        </div>
+
+        <!-- 菜单列表 -->
+        <div class="menu-list">
+            <div class="menu-item">
+                <i class="fas fa-file-alt icon"></i>
+                <span>我的帖子</span>
+                <i class="fas fa-chevron-right arrow"></i>
+            </div>
+            <div class="menu-item">
+                <i class="fas fa-comment-dots icon"></i>
+                <span>我的评论</span>
+                <i class="fas fa-chevron-right arrow"></i>
+            </div>
+            <div class="menu-item logout" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt icon"></i>
+                <span>退出登录</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部导航栏 (和主页一样，复制过来，把 active 改一下) -->
+    <nav class="app-tab-bar">
+        <a href="index.html" class="tab-item">
+            <i class="fas fa-home tab-icon"></i>
+            <span class="tab-label">主页</span>
+        </a>
+        <a href="new-post.html" class="tab-item">
+            <i class="fas fa-plus-circle tab-icon big-icon"></i>
+            <span class="tab-label">发帖</span>
+        </a>
+        <a href="#" class="tab-item active">
+            <i class="fas fa-user tab-icon"></i>
+            <span class="tab-label">我的</span>
+        </a>
+    </nav>
+
+    <script>
+        // 简单的模拟登录状态
+        // 实际开发中，这里应该从 localStorage 读取 token 和用户信息
+        document.addEventListener('DOMContentLoaded', () => {
+            // 假设我们已经“登录”了张三
+            document.getElementById('username-display').textContent = "张三";
+            document.getElementById('email-display').textContent = "zhangsan@xjtu.edu.cn";
+        });
+
+        function handleLogout() {
+            if(confirm('确定要退出登录吗？')) {
+                alert('已退出');
+                // 清除 localStorage...
+                // 跳转到登录页...
+            }
+        }
+    </script>
+</body>
+</html>
