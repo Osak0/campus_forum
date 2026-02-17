@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from .models import UserBase, UserCreate, UserLogin, PostBase, PostCreate, CommentBase, CommentCreate
+from models import UserBase, UserCreate, UserLogin, PostBase, PostCreate, CommentBase, CommentCreate
 
 
 app = FastAPI()
