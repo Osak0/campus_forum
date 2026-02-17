@@ -1,68 +1,20 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>帖子列表</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 16px; }
-    .post-item { border-bottom: 1px solid #ddd; padding: 12px 0; cursor: pointer; }
-    .post-title { font-size: 18px; font-weight: bold; margin: 0; }
-    .post-meta { font-size: 12px; color: #666; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XJTU 校园论坛</title>
+    <link rel="stylesheet" href="styles/app.css">
 </head>
 <body>
-  <h1>帖子列表</h1>
-  <div id="post-list">加载中...</div>
-
-  <script>
-    const API_BASE = "http://localhost:8000"; // 后端地址
-
-    async function loadPosts() {
-      const listElement = document.getElementById("post-list");
-
-      try {
-        const res = await fetch(`${API_BASE}/food_posts`);
-        if (!res.ok) {
-          listElement.textContent = "加载失败";
-          return;
-        }
-        const posts = await res.json();
-
-        if (posts.length === 0) {
-          listElement.textContent = "暂无帖子";
-          return;
-        }
-
-        listElement.innerHTML = "";
-
-        posts.forEach(post => {
-          const item = document.createElement("div");
-          item.className = "post-item";
-
-          item.innerHTML = `
-            <p class="post-title">${post.title || post.restaurant_name}</p>
-            <p class="post-meta">
-              类型：${post.post_type} |
-              城市：${post.city || "未知"} |
-              评分：${post.rating || "无"} |
-              创建时间：${new Date(post.created_at).toLocaleString()}
-            </p>
-          `;
-
-          // 点击跳转到详情页，带上 id 参数
-          item.addEventListener("click", () => {
-            window.location.href = \`post.html?id=\${post.id}\`;
-          });
-
-          listElement.appendChild(item);
-        });
-      } catch (error) {
-        console.error(error);
-        listElement.textContent = "请求出错";
-      }
-    }
-
-    loadPosts();
-  </script>
+    <header>
+        <h1>XJTU 校园论坛</h1>
+    </header>
+    <main>
+        <section id="post-list">
+            <!-- 帖子列表将通过 JavaScript 动态加载 -->
+        </section>
+    </main>
+    <script src="scripts/app.js"></script>
 </body>
 </html>
