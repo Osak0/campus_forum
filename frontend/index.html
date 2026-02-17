@@ -1,20 +1,45 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XJTU 校园论坛</title>
     <link rel="stylesheet" href="styles/app.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
-    <header>
-        <h1>XJTU 校园论坛</h1>
+    <header class="app-header">
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="搜索帖子/用户...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
     </header>
-    <main>
-        <section id="post-list">
-            <!-- 帖子列表将通过 JavaScript 动态加载 -->
-        </section>
+    <main id="posts-container" class="app-content">
+        <div class="loading-state">
+            <div class="spinner"></div> <!-- 这是旋转动画 -->
+            <p>正在加载帖子...</p>
+        </div>
     </main>
+    <nav class="app-tab-bar">
+        <a href="#" class="tab-item active" id="tab-home">
+            <i class="fas fa-home tab-icon"></i>
+            <span class="tab-label">首页</span>
+        </a>
+
+        <a href="new-post.html" class="tab-item" id="tab-posts">
+            <i class="fas fa-plus-circle tab-icon big-icon"></i>
+            <span class="tab-label">发帖</span>
+        </a>
+
+        <a href="profile.html" class="tab-item" id="tab-post">
+            <i class="fas fa-user tab-icon"></i>
+            <span class="tab-label">我的</span>
+        </a>
+    </nav>
+
     <script src="scripts/app.js"></script>
 </body>
+
 </html>

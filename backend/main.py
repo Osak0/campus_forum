@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from .models import UserBase, UserCreate, UserLogin, PostBase, PostCreate, CommentBase, CommentCreate
 
@@ -49,7 +48,7 @@ async def create_post(request: PostCreate):
     if request.author_email not in fake_user_db:
         raise HTTPException(status_code=400, detail="Author not found")
     post = {
-        "id": next_post_id, 
+        "id": next_post_id,
         "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "user_name": fake_user_db[request.author_email].user_name,
         **request.model_dump()
@@ -90,7 +89,7 @@ async def create_comment(post_id: int, request: CommentCreate):
     comment = {
         "id": next_comment_id,
         "post_id": post_id,
-        "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+        "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "user_name": fake_user_db[request.user_email].user_name,
         **request.model_dump()
     }
