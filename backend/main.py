@@ -1,10 +1,18 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from .models import UserBase, UserCreate, UserLogin, PostBase, PostCreate, CommentBase, CommentCreate
 
-app = FastAPI()
 
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 fake_user_db: dict[str, UserCreate] = {}
 fake_post_db: list[PostBase] = []
