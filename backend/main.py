@@ -19,7 +19,7 @@ fake_post_db: list[PostBase] = []
 next_post_id = 1
 comments_db: list[CommentBase] = []
 next_comment_id: int = 1
-votes_db: dict[tuple[int, str], str] = {}
+votes_db: dict[tuple[str, int, str], str] = {}
 # 用户注册
 
 
@@ -148,7 +148,7 @@ async def vote(post_id: int, request: VoteCreate, current_user_email: str = Depe
         raise HTTPException(status_code=404, detail="Post not found")
     if current_user_email not in fake_user_db:
         raise HTTPException(status_code=400, detail="User not found")
-    vote_key = (post_id, current_user_email)
+    vote_key = ("post", post_id, current_user_email)
     existing_vote = votes_db.get(vote_key)
 
     if existing_vote == request.vote_type:
@@ -182,7 +182,7 @@ async def vote_comment(comment_id: int, request: VoteCreate, current_user_email:
         raise HTTPException(status_code=404, detail="Comment not found")
     if current_user_email not in fake_user_db:
         raise HTTPException(status_code=400, detail="User not found")
-    vote_key = (comment_id, current_user_email)
+    vote_key = ("comment", comment_id, current_user_email)
     existing_vote = votes_db.get(vote_key)
 
     if existing_vote == request.vote_type:
@@ -216,7 +216,7 @@ async def get_vote_status(post_id: int, current_user_email: str = Depends(auth.g
         raise HTTPException(status_code=404, detail="Post not found")
     if current_user_email not in fake_user_db:
         raise HTTPException(status_code=400, detail="User not found")
-    vote_key = (post_id, current_user_email)
+    vote_key = ("post", post_id, current_user_email)
     return {"vote_type": votes_db.get(vote_key, "none")}
 
 #获取用户对评论的投票状态
@@ -226,15 +226,12 @@ async def get_comment_vote_status(post_id: int, current_user_email: str = Depend
     if post is None:
         raise HTTPException(status_code=404, detail="Post not found")
     comment_list = [c for c in comments_db if c.post_id == post_id]
-    if not comment_list:
-        raise HTTPException(status_code=404, detail="Comments not found for this post")
     result = {}
     for comment in comment_list:
-        if comment.user_name == fake_user_db[current_user_email].user_name:
-            vote_key = (comment.id, current_user_email)
-            vote = votes_db.get(vote_key)
-            if vote:
-                result[str(comment.id)] = vote
+        vote_key = ("comment", comment.id, current_user_email)
+        vote = votes_db.get(vote_key)
+        if vote:
+            result[str(comment.id)] = vote
     return {"vote_type": result}
 
 # 测试接口
