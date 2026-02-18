@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
 
     <header class="app-header">
@@ -25,11 +27,11 @@
     <!-- 引入 JS -->
     <script>
         const API_BASE_URL = "http://127.0.0.1:8000";
-        
+
         document.getElementById('submit-post-btn').addEventListener('click', async () => {
             const title = document.getElementById('title-input').value.trim();
             const content = document.getElementById('content-input').value.trim();
-            
+
             if (!title || !content) {
                 alert('标题和内容不能为空');
                 return;
@@ -62,4 +64,5 @@
         });
     </script>
 </body>
+
 </html>

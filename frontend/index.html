@@ -10,36 +10,95 @@
 </head>
 
 <body>
-    <header class="app-header">
-        <div class="search-bar">
-            <input type="text" id="search-input" placeholder="搜索帖子/用户...">
-            <i class="fas fa-search search-icon"></i>
+    <div class="navbar">
+        <h1>XJTU 论坛</h1>
+        <div id="auth-buttons">
+            <!-- 这里的内容会由 JS 动态填充 -->
         </div>
-    </header>
-    <main id="posts-container" class="app-content">
-        <div class="loading-state">
-            <div class="spinner"></div> <!-- 这是旋转动画 -->
-            <p>正在加载帖子...</p>
-        </div>
-    </main>
-    <nav class="app-tab-bar">
-        <a href="#" class="tab-item active" id="tab-home">
-            <i class="fas fa-home tab-icon"></i>
-            <span class="tab-label">首页</span>
-        </a>
+    </div>
 
-        <a href="new-post.html" class="tab-item" id="tab-posts">
-            <i class="fas fa-plus-circle tab-icon big-icon"></i>
-            <span class="tab-label">发帖</span>
-        </a>
+    <!-- 发帖区域 (默认隐藏，登录后显示) -->
+    <div id="post-section" class="hidden" style="margin: 20px;">
+        <h3>发布新帖子</h3>
+        <input type="text" id="post-title" placeholder="标题" style="width: 300px;"><br><br>
+        <textarea id="post-content" placeholder="内容" rows="4" style="width: 300px;"></textarea><br><br>
+        <button onclick="submitPost()">发布</button>
+    </div>
 
-        <a href="profile.html" class="tab-item" id="tab-post">
-            <i class="fas fa-user tab-icon"></i>
-            <span class="tab-label">我的</span>
-        </a>
-    </nav>
+    <hr>
+    <div id="posts-container">
+        <!-- 帖子列表 -->
+    </div>
 
-    <script src="scripts/app.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // 1. 初始化页面状态
+        function initUI() {
+            const authDiv = document.getElementById('auth-buttons');
+            const postSection = document.getElementById('post-section');
+
+            if (isLoggedIn()) {
+                // 已登录
+                authDiv.innerHTML = `
+                    <span>你好! </span>
+                    <button onclick="logout()">退出</button>
+                `;
+                postSection.classList.remove('hidden');
+            } else {
+                // 未登录
+                authDiv.innerHTML = `
+                    <a href="login.html">登录</a> | 
+                    <a href="register.html">注册</a>
+                `;
+                postSection.classList.add('hidden');
+            }
+        }
+
+        // 2. 退出登录
+        function logout() {
+            removeToken();
+            window.location.reload(); // 刷新页面
+        }
+
+        // 3. 发帖逻辑 (使用 authFetch 自动带 Token)
+        async function submitPost() {
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+
+            // 注意：现在的后端不需要 author_email 了，它会从 Token 里取
+            const response = await authFetch('/posts/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
+
+            if (response && response.ok) {
+                alert('发布成功！');
+                window.location.reload(); // 刷新列表
+            } else {
+                alert('发布失败');
+            }
+        }
+
+        // 4. 加载帖子列表 (公开接口，不需要 authFetch，普通 fetch 即可)
+        async function loadPosts() {
+            const res = await fetch(`${API_BASE_URL}/posts/`);
+            const posts = await res.json();
+            const container = document.getElementById('posts-container');
+
+            container.innerHTML = posts.map(post => `
+                <div style="border-bottom: 1px solid #eee; padding: 10px;">
+                    <h4>${post.title}</h4>
+                    <p>${post.content}</p>
+                    <small>作者: ${post.user_name} | 时间: ${post.release_time}</small>
+                </div>
+            `).join('');
+        }
+
+        // 启动！
+        initUI();
+        loadPosts();
+    </script>
 </body>
 
 </html>

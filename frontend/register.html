@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>注册 - 校园论坛</title>
+    <link rel="stylesheet" href="styles/app.css">
+</head>
+
+<body>
+    <form id="registerForm">
+        <h2>新用户注册</h2>
+
+        <label>邮箱</label>
+        <input type="email" id="email" required>
+
+        <label>昵称</label>
+        <input type="text" id="username" required>
+
+        <label>密码 (至少6位)</label>
+        <input type="password" id="password" minlength="6" required>
+
+        <button type="submit">注册</button>
+    </form>
+
+    <script src="auth.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // 构造 JSON 数据
+            const payload = {
+                user_email: email,
+                user_name: username,
+                password: password
+            };
+
+            const response = await fetch(`${API_BASE_URL}/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert('注册成功！快去登录吧');
+                window.location.href = 'login.html';
+            } else {
+                const err = await response.json();
+                alert('注册失败: ' + err.detail);
+            }
+        });
+    </script>
+</body>
+
+</html>
