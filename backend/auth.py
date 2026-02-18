@@ -4,8 +4,12 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+import os
+from dotenv import load_dotenv
 
-SECRET_KEY = "wwwwwww"  # 临时密钥，之后修改，从环境变量读取
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY", "niagataergtujxekam")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class UserBase(BaseModel):
@@ -7,7 +7,16 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., min_length=6, description="密码至少6位")
+    @field_validator('password')
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 6:
+            raise ValueError("密码至少6位")
+        if not any(char.isdigit() for char in value):
+            raise ValueError("密码必须包含至少一个数字")
+        if not any(char.isalpha() for char in value):
+            raise ValueError("密码必须包含至少一个字母")
+        return value
 
 class UserInDB(UserBase):
     hashed_password: str
