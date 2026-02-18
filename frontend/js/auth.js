@@ -78,6 +78,7 @@ function updateNavbar() {
 // 全局退出函数
 function logout() {
     removeToken();
+    localStorage.removeItem('user_email');
     window.location.href = "index.html";
 }
 

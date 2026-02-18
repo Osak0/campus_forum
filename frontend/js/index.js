@@ -38,7 +38,11 @@ async function loadPosts() {
                     ${post.content.length > 100 ? '<span style="color:#007bff">(点击查看全文)</span>' : ''}
                 </p>
                 <div class="post-meta">
-                    作者: ${post.user_name} | 时间: ${post.release_time}
+                    <span>作者: ${post.user_name} | 时间: ${post.release_time}</span>
+                    <span style="color: #666;">
+                        <span style="margin-left: 15px;">👍 ${post.upvotes}</span>
+                        <span style="margin-left: 10px;">👎 ${post.downvotes}</span>
+                    </span>
                 </div>
             `;
             container.appendChild(postCard);
