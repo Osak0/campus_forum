@@ -29,22 +29,60 @@ async function loadPosts() {
         posts.reverse().forEach(post => {
             const postCard = document.createElement('div');
             postCard.className = 'post-card';
+            postCard.style.cursor = 'pointer';
 
-            // 点击卡片跳转到详情页
-            postCard.innerHTML = `
-                <h3><a href="post_detail.html?id=${post.id}" style="text-decoration:none; color:#333;">${post.title}</a></h3>
-                <p style="color:#666; font-size: 0.9em;">
-                    ${post.content.substring(0, 100)}... 
-                    ${post.content.length > 100 ? '<span style="color:#007bff">(点击查看全文)</span>' : ''}
-                </p>
-                <div class="post-meta">
-                    <span>作者: ${post.user_name} | 时间: ${post.release_time}</span>
-                    <span style="color: #666;">
-                        <span style="margin-left: 15px;">👍 ${post.upvotes}</span>
-                        <span style="margin-left: 10px;">👎 ${post.downvotes}</span>
-                    </span>
-                </div>
+            // Click handler for entire card
+            postCard.onclick = () => window.location.href = `post_detail.html?id=${post.id}`;
+
+            // Create title
+            const titleEl = document.createElement('h3');
+            titleEl.textContent = post.title;
+            titleEl.style.color = '#333';
+            titleEl.style.marginBottom = '10px';
+            
+            // Create content preview
+            const contentEl = document.createElement('p');
+            contentEl.style.color = '#666';
+            contentEl.style.fontSize = '0.9em';
+            contentEl.style.marginBottom = '10px';
+            
+            let contentPreview = post.content.substring(0, 100);
+            if (post.content.length > 100) {
+                contentPreview += '... (点击查看全文)';
+            }
+            contentEl.textContent = contentPreview;
+            
+            // Create image element if exists
+            let imageEl = null;
+            if (post.image_url && post.image_url.trim() !== '') {
+                imageEl = document.createElement('img');
+                imageEl.src = post.image_url;
+                imageEl.alt = 'Post image';
+                imageEl.style.maxWidth = '100%';
+                imageEl.style.maxHeight = '200px';
+                imageEl.style.objectFit = 'cover';
+                imageEl.style.borderRadius = '8px';
+                imageEl.style.marginBottom = '10px';
+            }
+            
+            // Create meta section
+            const metaEl = document.createElement('div');
+            metaEl.className = 'post-meta';
+            metaEl.innerHTML = `
+                <span>作者: ${post.user_name} | 时间: ${post.release_time}</span>
+                <span style="color: #666;">
+                    <span style="margin-left: 15px;">👍 ${post.upvotes}</span>
+                    <span style="margin-left: 10px;">👎 ${post.downvotes}</span>
+                </span>
             `;
+
+            postCard.appendChild(titleEl);
+            postCard.appendChild(contentEl);
+            if (imageEl) {
+                postCard.appendChild(imageEl);
+            }
+            postCard.appendChild(metaEl);
+            
             container.appendChild(postCard);
         });
 

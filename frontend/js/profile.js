@@ -77,10 +77,30 @@ function cancelEdit() {
 }
 
 async function saveProfile() {
-    const avatar = document.getElementById('avatar-input').value.trim();
+    let avatar = document.getElementById('avatar-input').value.trim();
     const signature = document.getElementById('signature-input').value.trim();
+    const avatarFile = document.getElementById('avatar-file-input').files[0];
     
     try {
+        // If a file is selected, upload it first
+        if (avatarFile) {
+            const formData = new FormData();
+            formData.append('file', avatarFile);
+            
+            const uploadResponse = await authFetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (uploadResponse && uploadResponse.ok) {
+                const uploadResult = await uploadResponse.json();
+                avatar = `${API_BASE_URL}${uploadResult.file_url}`;
+            } else {
+                alert('上传头像失败，请重试');
+                return;
+            }
+        }
+        
         const response = await authFetch('/users/me', {
             method: 'PUT',
             headers: {

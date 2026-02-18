@@ -31,6 +31,7 @@ class UserLogin(BaseModel):
 class PostCreate(BaseModel):
     title: str
     content: str
+    image_url: str = ""
 
 
 class PostBase(PostCreate):
@@ -44,6 +45,7 @@ class PostBase(PostCreate):
 class CommentCreate(BaseModel):
     user_email: EmailStr
     content: str = Field(..., max_length=500)
+    image_url: str = ""
 
 
 class CommentBase(CommentCreate):
