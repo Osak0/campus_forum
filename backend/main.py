@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
-from models import UserInDB, UserCreate, PostBase, PostCreate, CommentBase, CommentCreate, Token
+from models import UserInDB, UserCreate, PostBase, PostCreate, CommentBase, CommentCreate, VoteCreate, Token
 from fastapi.security import OAuth2PasswordRequestForm
 import auth
 
@@ -19,7 +19,7 @@ fake_post_db: list[PostBase] = []
 next_post_id = 1
 comments_db: list[CommentBase] = []
 next_comment_id: int = 1
-
+votes_db: dict[tuple[int, str], str] = {}
 # 用户注册
 
 
@@ -68,18 +68,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @app.post("/posts/")
 async def create_post(request: PostCreate, current_user_email: str = Depends(auth.get_current_user)):
     global next_post_id
-    
+
     if current_user_email not in fake_user_db:
         raise HTTPException(status_code=400, detail="User not found")
-    
-    
+
     post = {
         "id": next_post_id,
         "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "user_name": fake_user_db[current_user_email].user_name,
         **request.model_dump()
     }
-    
+
     post = PostBase(**post)
     fake_post_db.append(post)
     next_post_id += 1
@@ -106,18 +105,20 @@ async def get_post(post_id: int):
 
 
 @app.post("/posts/{post_id}/comments")
-async def create_comment(post_id: int, request: CommentCreate):
+async def create_comment(post_id: int, request: CommentCreate, current_user_email: str = Depends(auth.get_current_user)):
     global next_comment_id
     post = next((p for p in fake_post_db if p.id == post_id), None)
-    if post == None:
+    if post is None:
         raise HTTPException(status_code=404, detail="Post not found")
-    if request.user_email not in fake_user_db:
+    if current_user_email not in fake_user_db:
         raise HTTPException(status_code=400, detail="User not found")
     comment = {
         "id": next_comment_id,
         "post_id": post_id,
         "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "user_name": fake_user_db[request.user_email].user_name,
+        "user_name": fake_user_db[current_user_email].user_name,
+        "upvotes": 0,
+        "downvotes": 0,
         **request.model_dump()
     }
     comment = CommentBase(**comment)
@@ -131,11 +132,110 @@ async def create_comment(post_id: int, request: CommentCreate):
 @app.get("/posts/{post_id}/comments", response_model=list[CommentBase])
 async def get_comments(post_id: int):
     post = next((p for p in fake_post_db if p.id == post_id), None)
-    if post == None:
+    if post is None:
         raise HTTPException(status_code=404, detail="Post not found")
     post_comments = [c for c in comments_db if c.post_id == post_id]
     post_comments = sorted(post_comments, key=lambda c: c.release_time)
     return post_comments
+
+# 点赞/踩接口
+
+
+@app.post("/posts/{post_id}/vote")
+async def vote(post_id: int, request: VoteCreate, current_user_email: str = Depends(auth.get_current_user)):
+    post = next((p for p in fake_post_db if p.id == post_id), None)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if current_user_email not in fake_user_db:
+        raise HTTPException(status_code=400, detail="User not found")
+    vote_key = (post_id, current_user_email)
+    existing_vote = votes_db.get(vote_key)
+
+    if existing_vote == request.vote_type:
+        if existing_vote == "upvote":
+            post.upvotes -= 1
+        else:
+            post.downvotes -= 1
+        del votes_db[vote_key]
+        return {"message": "Vote removed successfully","upvotes": post.upvotes, "downvotes": post.downvotes}
+
+    if existing_vote:
+        if existing_vote == "upvote":
+            post.upvotes -= 1
+        else:
+            post.downvotes -= 1
+
+    if request.vote_type == "upvote":
+        post.upvotes += 1
+    else:
+        post.downvotes += 1
+
+    votes_db[vote_key] = request.vote_type
+    return {"message": "Vote recorded successfully", "upvotes": post.upvotes, "downvotes": post.downvotes}
+
+#评论点赞/踩接口
+
+@app.post("/comments/{comment_id}/vote")
+async def vote_comment(comment_id: int, request: VoteCreate, current_user_email: str = Depends(auth.get_current_user)):
+    comment = next((c for c in comments_db if c.id == comment_id), None)
+    if comment is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if current_user_email not in fake_user_db:
+        raise HTTPException(status_code=400, detail="User not found")
+    vote_key = (comment_id, current_user_email)
+    existing_vote = votes_db.get(vote_key)
+
+    if existing_vote == request.vote_type:
+        if existing_vote == "upvote":
+            comment.upvotes -= 1
+        else:
+            comment.downvotes -= 1
+        del votes_db[vote_key]
+        return {"message": "Vote removed successfully","upvotes": comment.upvotes, "downvotes": comment.downvotes}
+
+    if existing_vote:
+        if existing_vote == "upvote":
+            comment.upvotes -= 1
+        else:
+            comment.downvotes -= 1
+
+    if request.vote_type == "upvote":
+        comment.upvotes += 1
+    else:
+        comment.downvotes += 1
+
+    votes_db[vote_key] = request.vote_type
+    return {"message": "Vote recorded successfully", "upvotes": comment.upvotes, "downvotes": comment.downvotes}
+
+
+#获取用户对帖子的投票状态
+@app.get("/posts/{post_id}/vote")
+async def get_vote_status(post_id: int, current_user_email: str = Depends(auth.get_current_user)):
+    post = next((p for p in fake_post_db if p.id == post_id), None)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if current_user_email not in fake_user_db:
+        raise HTTPException(status_code=400, detail="User not found")
+    vote_key = (post_id, current_user_email)
+    return {"vote_type": votes_db.get(vote_key, "none")}
+
+#获取用户对评论的投票状态
+@app.get("/posts/{post_id}/comments/vote")
+async def get_comment_vote_status(post_id: int, current_user_email: str = Depends(auth.get_current_user)):
+    post = next((p for p in fake_post_db if p.id == post_id), None)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    comment_list = [c for c in comments_db if c.post_id == post_id]
+    if not comment_list:
+        raise HTTPException(status_code=404, detail="Comments not found for this post")
+    result = {}
+    for comment in comment_list:
+        if comment.user_name == fake_user_db[current_user_email].user_name:
+            vote_key = (comment.id, current_user_email)
+            vote = votes_db.get(vote_key)
+            if vote:
+                result[str(comment.id)] = vote
+    return {"vote_type": result}
 
 # 测试接口
 

@@ -35,6 +35,8 @@ class PostBase(PostCreate):
     id: int
     release_time: str
     user_name: str
+    upvotes: int = 0
+    downvotes: int = 0
 
 
 class CommentCreate(BaseModel):
@@ -47,6 +49,12 @@ class CommentBase(CommentCreate):
     post_id: int
     release_time: str
     user_name: str
+    upvotes: int = 0
+    downvotes: int = 0
+
+class VoteCreate(BaseModel):
+    user_email: EmailStr
+    vote_type: str = Field(..., pattern="^(upvote|downvote)$") 
 
 
 class Token(BaseModel):
