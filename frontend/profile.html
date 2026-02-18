@@ -12,23 +12,61 @@
         <a href="index.html" class="btn btn-secondary">返回首页</a>
     </div>
 
-    <div style="max-width: 600px; margin: 20px auto;">
-        <div class="profile-header">
-            <!-- 用户名和邮箱由 profile.js 动态填充 -->
-            <h2 id="profile-name">加载中...</h2>
-            <p id="profile-email">...</p>
-        </div>
-        
-        <div class="profile-stats">
-            <!-- 以后可以加个“我的帖子数”统计 -->
-            <button onclick="logout()" class="btn" style="background-color: #dc3545;">退出登录</button>
+    <div style="max-width: 900px; margin: 20px auto; padding: 0 20px;">
+        <!-- Profile Header with Avatar -->
+        <div class="profile-card">
+            <div class="profile-avatar-section">
+                <div class="profile-avatar" id="profile-avatar">
+                    <span style="font-size: 4rem;">👤</span>
+                </div>
+                <div class="profile-info">
+                    <h2 id="profile-name">加载中...</h2>
+                    <p id="profile-email" style="color: #888;">...</p>
+                    <p id="profile-signature" style="color: #666; font-style: italic; margin-top: 10px;">暂无个性签名</p>
+                </div>
+            </div>
+            
+            <div class="profile-actions">
+                <button onclick="showEditProfile()" class="btn btn-secondary">✏️ 编辑资料</button>
+                <button onclick="logout()" class="btn" style="background-color: #dc3545;">退出登录</button>
+            </div>
         </div>
 
-        <!-- 预留区域：展示我的帖子 -->
-        <div class="detail-container" style="margin-top: 20px;">
-            <h3>我的帖子</h3>
-            <div id="my-posts-list">
-                <p style="color:#888; font-size:0.9em;">暂未开发 "查看我的帖子" 接口</p>
+        <!-- Edit Profile Form (Hidden by default) -->
+        <div id="edit-profile-section" style="display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <h3>编辑个人资料</h3>
+            <div style="margin-bottom: 15px;">
+                <label for="avatar-input" style="display: block; margin-bottom: 5px; font-weight: 500;">头像URL:</label>
+                <input type="text" id="avatar-input" placeholder="输入头像图片URL或留空使用默认头像" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                <small style="color: #888;">提示: 可以使用图片链接，例如 https://example.com/avatar.jpg</small>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="signature-input" style="display: block; margin-bottom: 5px; font-weight: 500;">个性签名:</label>
+                <textarea id="signature-input" placeholder="写下你的个性签名..." rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="saveProfile()" class="btn">💾 保存</button>
+                <button onclick="cancelEdit()" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+
+        <!-- Tabs for Posts and Favorites -->
+        <div class="profile-tabs">
+            <button class="tab-btn active" onclick="switchTab('posts', event)">📝 我的帖子</button>
+            <button class="tab-btn" onclick="switchTab('favorites', event)">⭐ 我的收藏</button>
+        </div>
+
+        <!-- My Posts Section -->
+        <div id="posts-section" class="tab-content active">
+            <div id="my-posts-list" class="posts-grid">
+                <p style="text-align:center; color:#888; padding: 40px 0;">加载中...</p>
+            </div>
+        </div>
+
+        <!-- Favorites Section -->
+        <div id="favorites-section" class="tab-content" style="display: none;">
+            <div id="my-favorites-list" class="posts-grid">
+                <p style="text-align:center; color:#888; padding: 40px 0;">加载中...</p>
             </div>
         </div>
     </div>
