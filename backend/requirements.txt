@@ -33,4 +33,4 @@ websockets==16.0
 sqlalchemy==2.0.25
 pymysql==1.1.1
 cryptography==46.0.5
-pillow==10.3.0
+pillow==12.1.1
