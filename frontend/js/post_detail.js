@@ -151,21 +151,10 @@ async function loadComments() {
                 return;
             }
             
-            // Get user's vote status on comments if logged in
-            let commentVotes = {};
-            if (isLoggedIn()) {
-                const voteResponse = await authFetch(`/posts/${postId}/comments/vote`);
-                if (voteResponse && voteResponse.ok) {
-                    const voteData = await voteResponse.json();
-                    commentVotes = voteData.vote_type || {};
-                }
-            }
-            
             container.innerHTML = '';
             comments.forEach(comment => {
                 const commentDiv = document.createElement('div');
                 commentDiv.className = 'comment-item';
-                const userVote = commentVotes[comment.id] || null;
                 
                 commentDiv.innerHTML = `
                     <div class="comment-header">
@@ -174,10 +163,10 @@ async function loadComments() {
                     </div>
                     <div class="comment-content">${comment.content}</div>
                     <div class="comment-actions" style="margin-top: 10px; display: flex; gap: 10px;">
-                        <button onclick="voteComment(${comment.id}, 'upvote')" class="vote-btn-small ${userVote === 'upvote' ? 'active-upvote' : ''}" id="comment-upvote-${comment.id}">
+                        <button onclick="voteComment(${comment.id}, 'upvote')" class="vote-btn-small" id="comment-upvote-${comment.id}">
                             👍 <span id="comment-upvote-count-${comment.id}">${comment.upvotes}</span>
                         </button>
-                        <button onclick="voteComment(${comment.id}, 'downvote')" class="vote-btn-small ${userVote === 'downvote' ? 'active-downvote' : ''}" id="comment-downvote-${comment.id}">
+                        <button onclick="voteComment(${comment.id}, 'downvote')" class="vote-btn-small" id="comment-downvote-${comment.id}">
                             👎 <span id="comment-downvote-count-${comment.id}">${comment.downvotes}</span>
                         </button>
                     </div>
