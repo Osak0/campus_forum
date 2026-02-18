@@ -1,104 +1,31 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XJTU 校园论坛</title>
-    <link rel="stylesheet" href="styles/app.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+    <!-- 顶部导航栏 -->
     <div class="navbar">
-        <h1>XJTU 论坛</h1>
-        <div id="auth-buttons">
-            <!-- 这里的内容会由 JS 动态填充 -->
+        <a href="index.html" style="text-decoration:none;"><h1>XJTU 论坛</h1></a>
+        <!-- 这里的内容由 auth.js 动态填充 (登录/注册 还是 发帖/退出) -->
+        <div id="auth-buttons"></div>
+    </div>
+
+    <!-- 帖子列表容器 -->
+    <div class="container" style="max-width: 800px; margin: 20px auto;">
+        <h2 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">最新动态</h2>
+        
+        <!-- 这里的内容由 index.js 动态填充 -->
+        <div id="posts-container">
+            <p style="text-align:center; color:#888;">正在加载...</p>
         </div>
     </div>
 
-    <!-- 发帖区域 (默认隐藏，登录后显示) -->
-    <div id="post-section" class="hidden" style="margin: 20px;">
-        <h3>发布新帖子</h3>
-        <input type="text" id="post-title" placeholder="标题" style="width: 300px;"><br><br>
-        <textarea id="post-content" placeholder="内容" rows="4" style="width: 300px;"></textarea><br><br>
-        <button onclick="submitPost()">发布</button>
-    </div>
-
-    <hr>
-    <div id="posts-container">
-        <!-- 帖子列表 -->
-    </div>
-
-    <script src="scripts/auth.js"></script>
-    <script>
-        // 1. 初始化页面状态
-        function initUI() {
-            const authDiv = document.getElementById('auth-buttons');
-            const postSection = document.getElementById('post-section');
-
-            if (isLoggedIn()) {
-                // 已登录
-                authDiv.innerHTML = `
-                    <span>你好! </span>
-                    <button onclick="logout()">退出</button>
-                `;
-                postSection.classList.remove('hidden');
-            } else {
-                // 未登录
-                authDiv.innerHTML = `
-                    <a href="login.html">登录</a> | 
-                    <a href="register.html">注册</a>
-                `;
-                postSection.classList.add('hidden');
-            }
-        }
-
-        // 2. 退出登录
-        function logout() {
-            removeToken();
-            window.location.reload(); // 刷新页面
-        }
-
-        // 3. 发帖逻辑 (使用 authFetch 自动带 Token)
-        async function submitPost() {
-            const title = document.getElementById('post-title').value;
-            const content = document.getElementById('post-content').value;
-
-            // 注意：现在的后端不需要 author_email 了，它会从 Token 里取
-            const response = await authFetch('/posts/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, content })
-            });
-
-            if (response && response.ok) {
-                alert('发布成功！');
-                window.location.reload(); // 刷新列表
-            } else {
-                alert('发布失败');
-            }
-        }
-
-        // 4. 加载帖子列表 (公开接口，不需要 authFetch，普通 fetch 即可)
-        async function loadPosts() {
-            const res = await fetch(`${API_BASE_URL}/posts/`);
-            const posts = await res.json();
-            const container = document.getElementById('posts-container');
-
-            container.innerHTML = posts.map(post => `
-                <div style="border-bottom: 1px solid #eee; padding: 10px;">
-                    <h4>${post.title}</h4>
-                    <p>${post.content}</p>
-                    <small>作者: ${post.user_name} | 时间: ${post.release_time}</small>
-                </div>
-            `).join('');
-        }
-
-        // 启动！
-        initUI();
-        loadPosts();
-    </script>
+    <!-- 引入脚本 -->
+    <script src="js/auth.js"></script> <!-- 必须先引入 auth.js -->
+    <script src="js/index.js"></script>
 </body>
-
 </html>

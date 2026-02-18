@@ -1,50 +1,85 @@
-// API 基础路径 (根据你的后端地址调整)
+// API 基础路径 (根据你的后端地址调整，通常是本地 8000)
 const API_BASE_URL = "http://127.0.0.1:8000";
 
-// 1. 保存 Token
+// --- Token 管理 ---
+
 function setToken(token) {
     localStorage.setItem('access_token', token);
 }
 
-// 2. 获取 Token
 function getToken() {
     return localStorage.getItem('access_token');
 }
 
-// 3. 删除 Token (退出登录)
 function removeToken() {
     localStorage.removeItem('access_token');
 }
 
-// 4. 检查是否登录
 function isLoggedIn() {
     const token = getToken();
-    // 这里可以加更复杂的逻辑，比如检查是否过期
-    return !!token; 
+    return !!token; // 有 token 返回 true，否则 false
 }
 
-// 5.带 Token 的请求封装 (核心!)
-async function authFetch(url, options = {}) {
+// --- 通用 Fetch 封装 (自动带 Token) ---
+
+async function authFetch(endpoint, options = {}) {
     const token = getToken();
-    
+
     // 自动添加 Header
     const headers = options.headers || {};
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
-    
-    const response = await fetch(`${API_BASE_URL}${url}`, {
-        ...options,
-        headers: headers
-    });
 
-    // 如果后端返回 401 (未授���)，说明 Token 过期或无效
-    if (response.status === 401) {
-        alert("登录已过期，请重新登录");
-        removeToken();
-        window.location.href = "/login.html"; // 跳转回登录页
+    // 确保 URL 格式正确
+    const url = `${API_BASE_URL}${endpoint}`;
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: headers
+        });
+
+        // 如果后端返回 401 (未授权)，说明 Token 过期或无效
+        if (response.status === 401) {
+            alert("登录已过期，请重新登录");
+            removeToken();
+            window.location.href = "login.html"; // 跳转回登录页
+            return null;
+        }
+
+        return response;
+    } catch (error) {
+        console.error("网络请求错误:", error);
+        alert("无法连接到服务器，请检查后端是否启动。");
         return null;
     }
-
-    return response;
 }
+
+// --- 通用：页面加载时检查导航栏状态 ---
+function updateNavbar() {
+    const authContainer = document.getElementById('auth-buttons');
+    if (!authContainer) return; // 如果页面没有导航栏容器，就不执行
+
+    if (isLoggedIn()) {
+        authContainer.innerHTML = `
+            <a href="create_post.html" class="btn btn-sm">➕ 发帖</a>
+            <a href="profile.html" class="btn btn-sm btn-secondary">我的主页</a>
+            <button onclick="logout()" class="btn btn-sm" style="background:#dc3545">退出</button>
+        `;
+    } else {
+        authContainer.innerHTML = `
+            <a href="login.html" class="btn btn-sm">登录</a>
+            <a href="register.html" class="btn btn-sm btn-secondary">注册</a>
+        `;
+    }
+}
+
+// 全局退出函数
+function logout() {
+    removeToken();
+    window.location.href = "index.html";
+}
+
+// 页面加载完成后自动更新导航栏
+document.addEventListener('DOMContentLoaded', updateNavbar);

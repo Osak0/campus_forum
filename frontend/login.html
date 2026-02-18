@@ -1,64 +1,37 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
-    <title>登录 - 校园论坛</title>
-    <!-- 引入简单的 CSS -->
-    <link rel="stylesheet" href="styles/app.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - XJTU论坛</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-    <form id="loginForm">
-        <h2>欢迎回来</h2>
-        <div id="errorMsg" class="error">用户名或密码错误</div>
+    <div class="auth-container">
+        <h2 class="text-center">欢迎回来</h2>
+        
+        <form id="loginForm">
+            <!-- 错误提示框 -->
+            <div id="errorMsg" class="error-msg">用户名或密码错误</div>
+            
+            <label>邮箱</label>
+            <!-- 注意 name="username" 是为了配合后端 OAuth2 标准 -->
+            <input type="email" name="username" required placeholder="example@xjtu.edu.cn">
+            
+            <label>密码</label>
+            <input type="password" name="password" required>
+            
+            <button type="submit" class="btn btn-block">登录</button>
+            
+            <p class="text-center" style="margin-top: 15px;">
+                还没有账号？<a href="register.html">去注册</a>
+                <br>
+                <a href="index.html" style="font-size: 0.9em; color: #888;">返回首页</a>
+            </p>
+        </form>
+    </div>
 
-        <!-- label 写邮箱，name 必须是 username (配合 OAuth2 标准) -->
-        <label>邮箱</label>
-        <input type="email" name="username" required placeholder="example@xjtu.edu.cn">
-
-        <label>密码</label>
-        <input type="password" name="password" required>
-
-        <button type="submit">登录</button>
-        <p style="font-size:0.8em; text-align:center;">
-            还没有账号？<a href="register.html">去注册</a>
-        </p>
-    </form>
-
-    <script src="scripts/auth.js"></script>
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); // 阻止表单默认提交
-
-            const formData = new FormData(e.target);
-            // 注意：/token 接口要求 Content-Type 是 application/x-www-form-urlencoded
-            // fetch 默认不会自动处理 FormData 成这种格式，所以要用 URLSearchParams
-            const data = new URLSearchParams(formData);
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/token`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: data
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    // 登录成功！保存 Token
-                    setToken(result.access_token);
-                    // 跳转回首页
-                    window.location.href = 'index.html';
-                } else {
-                    document.getElementById('errorMsg').style.display = 'block';
-                }
-            } catch (err) {
-                console.error('登录出错:', err);
-            }
-        });
-    </script>
+    <script src="js/auth.js"></script>
+    <script src="js/login.js"></script>
 </body>
-
 </html>
