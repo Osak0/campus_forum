@@ -220,7 +220,6 @@ async function submitComment() {
         if (response && response.ok) {
             input.value = '';
             await loadComments(); // Reload comments
-            alert("评论发表成功！");
         } else {
             alert("评论发表失败，请重试");
         }
