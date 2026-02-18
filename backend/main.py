@@ -260,11 +260,9 @@ async def update_current_user_profile(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Update user profile
-    if request.avatar:
-        user.avatar = request.avatar
-    if request.signature:
-        user.signature = request.signature
+    # Update user profile - allow empty strings to clear fields
+    user.avatar = request.avatar
+    user.signature = request.signature
     
     return {"message": "Profile updated successfully"}
 

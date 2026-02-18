@@ -35,7 +35,16 @@ async function loadProfile() {
         // Update avatar
         const avatarDiv = document.getElementById('profile-avatar');
         if (currentUser.avatar && currentUser.avatar.trim() !== '') {
-            avatarDiv.innerHTML = `<img src="${currentUser.avatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            // Create img element safely to prevent XSS
+            const img = document.createElement('img');
+            img.src = currentUser.avatar;
+            img.alt = 'Avatar';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '50%';
+            avatarDiv.innerHTML = '';
+            avatarDiv.appendChild(img);
         } else {
             avatarDiv.innerHTML = '<span style="font-size: 4rem;">👤</span>';
         }
@@ -89,11 +98,13 @@ async function saveProfile() {
     }
 }
 
-function switchTab(tabName) {
+function switchTab(tabName, event) {
     // Update tab buttons
     const tabBtns = document.querySelectorAll('.tab-btn');
     tabBtns.forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
     
     // Show/hide content
     if (tabName === 'posts') {
@@ -166,21 +177,42 @@ function createPostCard(post) {
     card.className = 'post-card';
     card.onclick = () => window.location.href = `post_detail.html?id=${post.id}`;
     
+    // Create title element safely
+    const titleEl = document.createElement('h3');
+    titleEl.className = 'post-title';
+    titleEl.textContent = post.title;
+    
     // Truncate content if too long
     let contentPreview = post.content;
     if (contentPreview.length > 150) {
         contentPreview = contentPreview.substring(0, 150) + '...';
     }
     
-    card.innerHTML = `
-        <h3 class="post-title">${post.title}</h3>
-        <p class="post-preview">${contentPreview}</p>
-        <div class="post-meta">
-            <span>👤 ${post.user_name}</span>
-            <span>🕐 ${post.release_time}</span>
-            <span>👍 ${post.upvotes} 👎 ${post.downvotes}</span>
-        </div>
-    `;
+    // Create preview element safely
+    const previewEl = document.createElement('p');
+    previewEl.className = 'post-preview';
+    previewEl.textContent = contentPreview;
+    
+    // Create meta section
+    const metaEl = document.createElement('div');
+    metaEl.className = 'post-meta';
+    
+    const authorSpan = document.createElement('span');
+    authorSpan.textContent = `👤 ${post.user_name}`;
+    
+    const timeSpan = document.createElement('span');
+    timeSpan.textContent = `🕐 ${post.release_time}`;
+    
+    const votesSpan = document.createElement('span');
+    votesSpan.textContent = `👍 ${post.upvotes} 👎 ${post.downvotes}`;
+    
+    metaEl.appendChild(authorSpan);
+    metaEl.appendChild(timeSpan);
+    metaEl.appendChild(votesSpan);
+    
+    card.appendChild(titleEl);
+    card.appendChild(previewEl);
+    card.appendChild(metaEl);
     
     return card;
 }
