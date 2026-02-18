@@ -7,6 +7,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     // 获取表单数据
     const formData = new FormData(e.target);
     const data = new URLSearchParams(formData); // 转成 application/x-www-form-urlencoded 格式
+    
+    // Get the email from the form to store it
+    const userEmail = formData.get('username'); // In OAuth2PasswordRequestForm, username is the email
 
     try {
         const response = await fetch(`${API_BASE_URL}/token`, {
@@ -19,8 +22,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
         if (response.ok) {
             const result = await response.json();
-            // 登录成功，保存 Token
+            // 登录成功，保存 Token 和 Email
             setToken(result.access_token);
+            localStorage.setItem('user_email', userEmail);
             // 跳转回首页
             window.location.href = 'index.html';
         } else {
