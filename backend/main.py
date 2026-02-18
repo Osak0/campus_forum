@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
-from models import UserInDB, UserCreate, UserLogin, PostBase, PostCreate, CommentBase, CommentCreate, Token
+from models import UserInDB, UserCreate, PostBase, PostCreate, CommentBase, CommentCreate, Token
 from fastapi.security import OAuth2PasswordRequestForm
-import backend.auth as auth
+import auth
 
 app = FastAPI()
 app.add_middleware(
