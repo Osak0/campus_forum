@@ -5,10 +5,16 @@ from datetime import datetime
 import os
 
 # Database URL - can be configured via environment variable
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:password@localhost:3306/campus_forum")
+# Supports both MySQL and SQLite
+# MySQL: mysql+pymysql://root:password@localhost:3306/campus_forum
+# SQLite: sqlite:///./campus_forum.db
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./campus_forum.db")
 
-# Create engine
-engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+# Create engine with appropriate settings
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
 
 # Create sessionmaker
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -46,7 +52,6 @@ class Post(Base):
     
     author = relationship("User", back_populates="posts")
     comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
-    votes = relationship("Vote", back_populates="post", cascade="all, delete-orphan")
     favorites = relationship("Favorite", back_populates="post", cascade="all, delete-orphan")
 
 
@@ -64,7 +69,6 @@ class Comment(Base):
     
     post = relationship("Post", back_populates="comments")
     author = relationship("User", back_populates="comments")
-    votes = relationship("Vote", back_populates="comment", cascade="all, delete-orphan")
 
 
 class Vote(Base):
@@ -77,10 +81,6 @@ class Vote(Base):
     vote_type = Column(String(20), nullable=False)  # "upvote" or "downvote"
     
     user = relationship("User", back_populates="votes")
-    post = relationship("Post", back_populates="votes", foreign_keys=[entity_id], 
-                       primaryjoin="and_(Vote.entity_type=='post', Vote.entity_id==Post.id)")
-    comment = relationship("Comment", back_populates="votes", foreign_keys=[entity_id],
-                          primaryjoin="and_(Vote.entity_type=='comment', Vote.entity_id==Comment.id)")
 
 
 class Favorite(Base):
