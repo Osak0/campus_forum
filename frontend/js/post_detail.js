@@ -52,49 +52,147 @@ async function loadPostDetail() {
                 }
             }
             
-            // 渲染帖子内容
-            container.innerHTML = `
-                <h1 class="detail-title">${post.title}</h1>
-                <div class="detail-meta">
-                    <span>作者: ${post.user_name}</span>
-                    <span style="margin-left: 15px;">时间: ${post.release_time}</span>
-                </div>
-                <div class="detail-content" style="margin-top: 20px; font-size: 1.1em; line-height: 1.6;">
-                    ${post.content.replace(/\n/g, '<br>')}
-                </div>
-                <div class="vote-section" style="margin-top: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                    <button onclick="votePost('upvote')" class="vote-btn ${userVote === 'upvote' ? 'active-upvote' : ''}" id="upvote-btn">
-                        👍 <span id="upvote-count">${post.upvotes}</span>
-                    </button>
-                    <button onclick="votePost('downvote')" class="vote-btn ${userVote === 'downvote' ? 'active-downvote' : ''}" id="downvote-btn">
-                        👎 <span id="downvote-count">${post.downvotes}</span>
-                    </button>
-                    ${isLoggedIn() ? `
-                        <button onclick="toggleFavorite()" class="favorite-btn ${isFavorited ? 'favorited' : ''}" id="favorite-btn">
-                            <span id="favorite-icon">${isFavorited ? '⭐' : '☆'}</span>
-                            <span id="favorite-text">${isFavorited ? '已收藏' : '收藏'}</span>
-                        </button>
-                    ` : ''}
-                </div>
-                <hr style="margin-top: 30px;">
+            // 渲染帖子内容 - Use DOM API to prevent XSS
+            container.innerHTML = '';
+            
+            // Title
+            const titleEl = document.createElement('h1');
+            titleEl.className = 'detail-title';
+            titleEl.textContent = post.title;
+            container.appendChild(titleEl);
+            
+            // Meta info
+            const metaEl = document.createElement('div');
+            metaEl.className = 'detail-meta';
+            const authorSpan = document.createElement('span');
+            authorSpan.textContent = `作者: ${post.user_name}`;
+            const timeSpan = document.createElement('span');
+            timeSpan.style.marginLeft = '15px';
+            timeSpan.textContent = `时间: ${post.release_time}`;
+            metaEl.appendChild(authorSpan);
+            metaEl.appendChild(timeSpan);
+            container.appendChild(metaEl);
+            
+            // Content
+            const contentEl = document.createElement('div');
+            contentEl.className = 'detail-content';
+            contentEl.style.marginTop = '20px';
+            contentEl.style.fontSize = '1.1em';
+            contentEl.style.lineHeight = '1.6';
+            // Preserve line breaks safely
+            const lines = post.content.split('\n');
+            lines.forEach((line, index) => {
+                contentEl.appendChild(document.createTextNode(line));
+                if (index < lines.length - 1) {
+                    contentEl.appendChild(document.createElement('br'));
+                }
+            });
+            container.appendChild(contentEl);
+            
+            // Vote section
+            const voteSection = document.createElement('div');
+            voteSection.className = 'vote-section';
+            voteSection.style.marginTop = '20px';
+            voteSection.style.display = 'flex';
+            voteSection.style.alignItems = 'center';
+            voteSection.style.gap = '15px';
+            voteSection.style.flexWrap = 'wrap';
+            
+            // Upvote button
+            const upvoteBtn = document.createElement('button');
+            upvoteBtn.id = 'upvote-btn';
+            upvoteBtn.className = `vote-btn ${userVote === 'upvote' ? 'active-upvote' : ''}`;
+            upvoteBtn.onclick = () => votePost('upvote');
+            upvoteBtn.innerHTML = `👍 <span id="upvote-count">${post.upvotes}</span>`;
+            voteSection.appendChild(upvoteBtn);
+            
+            // Downvote button
+            const downvoteBtn = document.createElement('button');
+            downvoteBtn.id = 'downvote-btn';
+            downvoteBtn.className = `vote-btn ${userVote === 'downvote' ? 'active-downvote' : ''}`;
+            downvoteBtn.onclick = () => votePost('downvote');
+            downvoteBtn.innerHTML = `👎 <span id="downvote-count">${post.downvotes}</span>`;
+            voteSection.appendChild(downvoteBtn);
+            
+            // Favorite button (if logged in)
+            if (isLoggedIn()) {
+                const favoriteBtn = document.createElement('button');
+                favoriteBtn.id = 'favorite-btn';
+                favoriteBtn.className = `favorite-btn ${isFavorited ? 'favorited' : ''}`;
+                favoriteBtn.onclick = toggleFavorite;
+                favoriteBtn.innerHTML = `<span id="favorite-icon">${isFavorited ? '⭐' : '☆'}</span><span id="favorite-text">${isFavorited ? '已收藏' : '收藏'}</span>`;
+                voteSection.appendChild(favoriteBtn);
+            }
+            
+            container.appendChild(voteSection);
+            
+            // Separator
+            const hr1 = document.createElement('hr');
+            hr1.style.marginTop = '30px';
+            container.appendChild(hr1);
+            
+            // Comments section
+            const commentsSection = document.createElement('div');
+            commentsSection.className = 'comments-section';
+            const commentsTitle = document.createElement('h3');
+            commentsTitle.textContent = '评论区';
+            commentsSection.appendChild(commentsTitle);
+            
+            // Comment form (if logged in)
+            if (isLoggedIn()) {
+                const commentForm = document.createElement('div');
+                commentForm.className = 'comment-form';
+                commentForm.style.marginBottom = '30px';
                 
-                <!-- 评论区 -->
-                <div class="comments-section">
-                    <h3>评论区</h3>
-                    ${isLoggedIn() ? `
-                        <div class="comment-form" style="margin-bottom: 30px;">
-                            <textarea id="comment-input" placeholder="发表你的评论..." rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
-                            <button onclick="submitComment()" class="btn" style="margin-top: 10px;">发表评论</button>
-                        </div>
-                    ` : '<p style="color: #888;">请<a href="login.html">登录</a>后发表评论</p>'}
-                    <div id="comments-container">
-                        <p style="text-align: center; color: #888;">加载评论中...</p>
-                    </div>
-                </div>
+                const textarea = document.createElement('textarea');
+                textarea.id = 'comment-input';
+                textarea.placeholder = '发表你的评论...';
+                textarea.rows = 3;
+                textarea.style.width = '100%';
+                textarea.style.padding = '10px';
+                textarea.style.border = '1px solid #ddd';
+                textarea.style.borderRadius = '6px';
+                textarea.style.resize = 'vertical';
+                commentForm.appendChild(textarea);
                 
-                <hr style="margin-top: 30px;">
-                <button onclick="history.back()" class="btn btn-secondary">返回列表</button>
-            `;
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'btn';
+                submitBtn.style.marginTop = '10px';
+                submitBtn.textContent = '发表评论';
+                submitBtn.onclick = submitComment;
+                commentForm.appendChild(submitBtn);
+                
+                commentsSection.appendChild(commentForm);
+            } else {
+                const loginPrompt = document.createElement('p');
+                loginPrompt.style.color = '#888';
+                loginPrompt.innerHTML = '请<a href="login.html">登录</a>后发表评论';
+                commentsSection.appendChild(loginPrompt);
+            }
+            
+            // Comments container
+            const commentsContainer = document.createElement('div');
+            commentsContainer.id = 'comments-container';
+            const loadingText = document.createElement('p');
+            loadingText.style.textAlign = 'center';
+            loadingText.style.color = '#888';
+            loadingText.textContent = '加载评论中...';
+            commentsContainer.appendChild(loadingText);
+            commentsSection.appendChild(commentsContainer);
+            
+            container.appendChild(commentsSection);
+            
+            // Separator
+            const hr2 = document.createElement('hr');
+            hr2.style.marginTop = '30px';
+            container.appendChild(hr2);
+            
+            // Back button
+            const backBtn = document.createElement('button');
+            backBtn.className = 'btn btn-secondary';
+            backBtn.textContent = '返回列表';
+            backBtn.onclick = () => history.back();
+            container.appendChild(backBtn);
         } else {
             container.innerHTML = '<h2>帖子不存在或已被删除</h2><br><a href="index.html">返回首页</a>';
         }

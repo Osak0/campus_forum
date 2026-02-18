@@ -20,7 +20,7 @@ class UserCreate(UserBase):
 
 class UserInDB(UserBase):
     hashed_password: str
-    avatar: str = ""  # Avatar URL or base64 data
+    avatar: str = ""  # Avatar URL
     signature: str = ""  # Personal signature/bio
 
 class UserLogin(BaseModel):

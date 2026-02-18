@@ -4,6 +4,9 @@ if (!isLoggedIn()) {
     window.location.href = "login.html";
 }
 
+// Constants
+const MAX_PREVIEW_LENGTH = 150;
+
 let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -43,7 +46,7 @@ async function loadProfile() {
             img.style.height = '100%';
             img.style.objectFit = 'cover';
             img.style.borderRadius = '50%';
-            avatarDiv.innerHTML = '';
+            avatarDiv.textContent = ''; // Clear existing content safely
             avatarDiv.appendChild(img);
         } else {
             avatarDiv.innerHTML = '<span style="font-size: 4rem;">👤</span>';
@@ -184,8 +187,8 @@ function createPostCard(post) {
     
     // Truncate content if too long
     let contentPreview = post.content;
-    if (contentPreview.length > 150) {
-        contentPreview = contentPreview.substring(0, 150) + '...';
+    if (contentPreview.length > MAX_PREVIEW_LENGTH) {
+        contentPreview = contentPreview.substring(0, MAX_PREVIEW_LENGTH) + '...';
     }
     
     // Create preview element safely
