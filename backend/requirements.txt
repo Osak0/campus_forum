@@ -30,3 +30,7 @@ uvicorn==0.40.0
 uvloop==0.22.1
 watchfiles==1.1.1
 websockets==16.0
+sqlalchemy==2.0.25
+pymysql==1.1.1
+cryptography==46.0.5
+pillow==12.1.1

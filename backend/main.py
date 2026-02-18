@@ -1,9 +1,16 @@
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import FastAPI, HTTPException, status, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from datetime import datetime, timedelta
-from models import UserInDB, UserCreate, PostBase, PostCreate, CommentBase, CommentCreate, VoteCreate, Token, UserProfile, UserProfileUpdate, FavoriteCreate
+from models import UserCreate, PostCreate, CommentCreate, VoteCreate, Token, UserProfile, UserProfileUpdate, FavoriteCreate
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 import auth
+import database
+import os
+import shutil
+from pathlib import Path
+import uuid
 
 app = FastAPI()
 app.add_middleware(
@@ -14,34 +21,58 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-fake_user_db: dict[str, UserInDB] = {}
-fake_post_db: list[PostBase] = []
-next_post_id = 1
-comments_db: list[CommentBase] = []
-next_comment_id: int = 1
-votes_db: dict[tuple[str, int, str], str] = {}
-favorites_db: dict[tuple[int, str], bool] = {}  # (post_id, user_email) -> True
+# Create uploads directory if it doesn't exist
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+# Mount the uploads directory to serve static files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    database.init_db()
+
+# Helper function to save uploaded file
+def save_upload_file(upload_file: UploadFile, prefix: str = "") -> str:
+    """Save uploaded file and return the URL path"""
+    # Generate unique filename
+    file_extension = os.path.splitext(upload_file.filename)[1]
+    unique_filename = f"{prefix}_{uuid.uuid4()}{file_extension}"
+    file_path = UPLOAD_DIR / unique_filename
+    
+    # Save file
+    with file_path.open("wb") as buffer:
+        shutil.copyfileobj(upload_file.file, buffer)
+    
+    return f"/uploads/{unique_filename}"
+
 # 用户注册
-
-
 @app.post("/register", status_code=status.HTTP_201_CREATED)
-async def create_user(request: UserCreate):
-    if request.user_email in fake_user_db:
+async def create_user(request: UserCreate, db: Session = Depends(database.get_db)):
+    # Check if user already exists
+    existing_user = db.query(database.User).filter(database.User.user_email == request.user_email).first()
+    if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Hash password and create user
     hashed_password = auth.get_hashed_password(request.password)
-    user_indb = UserInDB(
-        **request.model_dump(exclude={"password"}),
-        hashed_password=hashed_password
+    new_user = database.User(
+        user_email=request.user_email,
+        user_name=request.user_name,
+        hashed_password=hashed_password,
+        avatar="",
+        signature=""
     )
-    fake_user_db[request.user_email] = user_indb
+    db.add(new_user)
+    db.commit()
+    
     return {"message": "User created successfully"}
 
 # 用户登录
-
-
 @app.post("/token", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = fake_user_db.get(form_data.username)
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
+    user = db.query(database.User).filter(database.User.user_email == form_data.username).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -63,185 +94,335 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
     return {"access_token": access_token, "token_type": "bearer"}
 
+# 上传文件 (用于头像和帖子图片)
+@app.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user_email: str = Depends(auth.get_current_user)
+):
+    # Validate file type
+    allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    
+    if file_extension not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
+    
+    # Save file
+    file_url = save_upload_file(file, prefix="img")
+    
+    return {"file_url": file_url, "message": "File uploaded successfully"}
+
 # 创建帖子
-
-
 @app.post("/posts/")
-async def create_post(request: PostCreate, current_user_email: str = Depends(auth.get_current_user)):
-    global next_post_id
-
-    if current_user_email not in fake_user_db:
+async def create_post(
+    request: PostCreate, 
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not user:
         raise HTTPException(status_code=400, detail="User not found")
 
-    post = {
-        "id": next_post_id,
-        "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "user_name": fake_user_db[current_user_email].user_name,
-        **request.model_dump()
-    }
-
-    post = PostBase(**post)
-    fake_post_db.append(post)
-    next_post_id += 1
-    return {"message": "Post created successfully", "post_id": post.id}
+    new_post = database.Post(
+        title=request.title,
+        content=request.content,
+        image_url=request.image_url,
+        user_email=current_user_email,
+        release_time=datetime.now(),
+        upvotes=0,
+        downvotes=0
+    )
+    
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
+    
+    return {"message": "Post created successfully", "post_id": new_post.id}
 
 # 获取帖子列表
-
-
-@app.get("/posts/", response_model=list[PostBase])
-async def list_posts():
-    return fake_post_db
+@app.get("/posts/")
+async def list_posts(db: Session = Depends(database.get_db)):
+    posts = db.query(database.Post).order_by(database.Post.release_time.desc()).all()
+    
+    result = []
+    for post in posts:
+        result.append({
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "image_url": post.image_url,
+            "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "user_name": post.author.user_name,
+            "upvotes": post.upvotes,
+            "downvotes": post.downvotes
+        })
+    
+    return result
 
 # 获取帖子详情
-
-
-@app.get("/posts/{post_id}", response_model=PostBase)
-async def get_post(post_id: int):
-    for post in fake_post_db:
-        if post.id == post_id:
-            return post
-    raise HTTPException(status_code=404, detail="Post not found")
+@app.get("/posts/{post_id}")
+async def get_post(post_id: int, db: Session = Depends(database.get_db)):
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    return {
+        "id": post.id,
+        "title": post.title,
+        "content": post.content,
+        "image_url": post.image_url,
+        "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "user_name": post.author.user_name,
+        "upvotes": post.upvotes,
+        "downvotes": post.downvotes
+    }
 
 # 创建评论
-
-
 @app.post("/posts/{post_id}/comments")
-async def create_comment(post_id: int, request: CommentCreate, current_user_email: str = Depends(auth.get_current_user)):
-    global next_comment_id
-    post = next((p for p in fake_post_db if p.id == post_id), None)
-    if post is None:
+async def create_comment(
+    post_id: int, 
+    request: CommentCreate, 
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    if current_user_email not in fake_user_db:
+    
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not user:
         raise HTTPException(status_code=400, detail="User not found")
-    comment = {
-        "id": next_comment_id,
-        "post_id": post_id,
-        "release_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "user_name": fake_user_db[current_user_email].user_name,
-        "upvotes": 0,
-        "downvotes": 0,
-        **request.model_dump()
-    }
-    comment = CommentBase(**comment)
-    comments_db.append(comment)
-    next_comment_id += 1
-    return {"message": "Comment created successfully", "comment_id": comment.id}
+    
+    new_comment = database.Comment(
+        post_id=post_id,
+        content=request.content,
+        image_url=request.image_url,
+        user_email=current_user_email,
+        release_time=datetime.now(),
+        upvotes=0,
+        downvotes=0
+    )
+    
+    db.add(new_comment)
+    db.commit()
+    db.refresh(new_comment)
+    
+    return {"message": "Comment created successfully", "comment_id": new_comment.id}
 
 # 获取评论列表
-
-
-@app.get("/posts/{post_id}/comments", response_model=list[CommentBase])
-async def get_comments(post_id: int):
-    post = next((p for p in fake_post_db if p.id == post_id), None)
-    if post is None:
+@app.get("/posts/{post_id}/comments")
+async def get_comments(post_id: int, db: Session = Depends(database.get_db)):
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    post_comments = [c for c in comments_db if c.post_id == post_id]
-    post_comments = sorted(post_comments, key=lambda c: c.release_time)
-    return post_comments
+    
+    comments = db.query(database.Comment).filter(
+        database.Comment.post_id == post_id
+    ).order_by(database.Comment.release_time.asc()).all()
+    
+    result = []
+    for comment in comments:
+        result.append({
+            "id": comment.id,
+            "post_id": comment.post_id,
+            "content": comment.content,
+            "image_url": comment.image_url,
+            "user_email": comment.user_email,
+            "release_time": comment.release_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "user_name": comment.author.user_name,
+            "upvotes": comment.upvotes,
+            "downvotes": comment.downvotes
+        })
+    
+    return result
 
 # 点赞/踩接口
-
-
 @app.post("/posts/{post_id}/vote")
-async def vote(post_id: int, request: VoteCreate, current_user_email: str = Depends(auth.get_current_user)):
-    post = next((p for p in fake_post_db if p.id == post_id), None)
-    if post is None:
+async def vote(
+    post_id: int, 
+    request: VoteCreate, 
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    if current_user_email not in fake_user_db:
+    
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not user:
         raise HTTPException(status_code=400, detail="User not found")
-    vote_key = ("post", post_id, current_user_email)
-    existing_vote = votes_db.get(vote_key)
-
-    if existing_vote == request.vote_type:
-        if existing_vote == "upvote":
-            post.upvotes -= 1
-        else:
-            post.downvotes -= 1
-        del votes_db[vote_key]
-        return {"message": "Vote removed successfully","upvotes": post.upvotes, "downvotes": post.downvotes}
-
+    
+    # Check existing vote
+    existing_vote = db.query(database.Vote).filter(
+        database.Vote.entity_type == "post",
+        database.Vote.entity_id == post_id,
+        database.Vote.user_email == current_user_email
+    ).first()
+    
     if existing_vote:
-        if existing_vote == "upvote":
-            post.upvotes -= 1
+        if existing_vote.vote_type == request.vote_type:
+            # Remove vote
+            if existing_vote.vote_type == "upvote":
+                post.upvotes -= 1
+            else:
+                post.downvotes -= 1
+            db.delete(existing_vote)
+            db.commit()
+            return {"message": "Vote removed successfully", "upvotes": post.upvotes, "downvotes": post.downvotes}
         else:
-            post.downvotes -= 1
-
-    if request.vote_type == "upvote":
-        post.upvotes += 1
+            # Change vote
+            if existing_vote.vote_type == "upvote":
+                post.upvotes -= 1
+            else:
+                post.downvotes -= 1
+            
+            existing_vote.vote_type = request.vote_type
+            
+            if request.vote_type == "upvote":
+                post.upvotes += 1
+            else:
+                post.downvotes += 1
+            
+            db.commit()
+            return {"message": "Vote updated successfully", "upvotes": post.upvotes, "downvotes": post.downvotes}
     else:
-        post.downvotes += 1
+        # New vote
+        if request.vote_type == "upvote":
+            post.upvotes += 1
+        else:
+            post.downvotes += 1
+        
+        new_vote = database.Vote(
+            entity_type="post",
+            entity_id=post_id,
+            user_email=current_user_email,
+            vote_type=request.vote_type
+        )
+        db.add(new_vote)
+        db.commit()
+        return {"message": "Vote recorded successfully", "upvotes": post.upvotes, "downvotes": post.downvotes}
 
-    votes_db[vote_key] = request.vote_type
-    return {"message": "Vote recorded successfully", "upvotes": post.upvotes, "downvotes": post.downvotes}
-
-#评论点赞/踩接口
-
+# 评论点赞/踩接口
 @app.post("/comments/{comment_id}/vote")
-async def vote_comment(comment_id: int, request: VoteCreate, current_user_email: str = Depends(auth.get_current_user)):
-    comment = next((c for c in comments_db if c.id == comment_id), None)
-    if comment is None:
+async def vote_comment(
+    comment_id: int, 
+    request: VoteCreate, 
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    comment = db.query(database.Comment).filter(database.Comment.id == comment_id).first()
+    if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
-    if current_user_email not in fake_user_db:
+    
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not user:
         raise HTTPException(status_code=400, detail="User not found")
-    vote_key = ("comment", comment_id, current_user_email)
-    existing_vote = votes_db.get(vote_key)
-
-    if existing_vote == request.vote_type:
-        if existing_vote == "upvote":
-            comment.upvotes -= 1
-        else:
-            comment.downvotes -= 1
-        del votes_db[vote_key]
-        return {"message": "Vote removed successfully","upvotes": comment.upvotes, "downvotes": comment.downvotes}
-
+    
+    # Check existing vote
+    existing_vote = db.query(database.Vote).filter(
+        database.Vote.entity_type == "comment",
+        database.Vote.entity_id == comment_id,
+        database.Vote.user_email == current_user_email
+    ).first()
+    
     if existing_vote:
-        if existing_vote == "upvote":
-            comment.upvotes -= 1
+        if existing_vote.vote_type == request.vote_type:
+            # Remove vote
+            if existing_vote.vote_type == "upvote":
+                comment.upvotes -= 1
+            else:
+                comment.downvotes -= 1
+            db.delete(existing_vote)
+            db.commit()
+            return {"message": "Vote removed successfully", "upvotes": comment.upvotes, "downvotes": comment.downvotes}
         else:
-            comment.downvotes -= 1
-
-    if request.vote_type == "upvote":
-        comment.upvotes += 1
+            # Change vote
+            if existing_vote.vote_type == "upvote":
+                comment.upvotes -= 1
+            else:
+                comment.downvotes -= 1
+            
+            existing_vote.vote_type = request.vote_type
+            
+            if request.vote_type == "upvote":
+                comment.upvotes += 1
+            else:
+                comment.downvotes += 1
+            
+            db.commit()
+            return {"message": "Vote updated successfully", "upvotes": comment.upvotes, "downvotes": comment.downvotes}
     else:
-        comment.downvotes += 1
+        # New vote
+        if request.vote_type == "upvote":
+            comment.upvotes += 1
+        else:
+            comment.downvotes += 1
+        
+        new_vote = database.Vote(
+            entity_type="comment",
+            entity_id=comment_id,
+            user_email=current_user_email,
+            vote_type=request.vote_type
+        )
+        db.add(new_vote)
+        db.commit()
+        return {"message": "Vote recorded successfully", "upvotes": comment.upvotes, "downvotes": comment.downvotes}
 
-    votes_db[vote_key] = request.vote_type
-    return {"message": "Vote recorded successfully", "upvotes": comment.upvotes, "downvotes": comment.downvotes}
-
-
-#获取用户对帖子的投票状态
+# 获取用户对帖子的投票状态
 @app.get("/posts/{post_id}/vote")
-async def get_vote_status(post_id: int, current_user_email: str = Depends(auth.get_current_user)):
-    post = next((p for p in fake_post_db if p.id == post_id), None)
-    if post is None:
+async def get_vote_status(
+    post_id: int, 
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    if current_user_email not in fake_user_db:
-        raise HTTPException(status_code=400, detail="User not found")
-    vote_key = ("post", post_id, current_user_email)
-    return {"vote_type": votes_db.get(vote_key, "none")}
+    
+    vote = db.query(database.Vote).filter(
+        database.Vote.entity_type == "post",
+        database.Vote.entity_id == post_id,
+        database.Vote.user_email == current_user_email
+    ).first()
+    
+    return {"vote_type": vote.vote_type if vote else "none"}
 
-#获取用户对评论的投票状态
+# 获取用户对评论的投票状态
 @app.get("/posts/{post_id}/comments/vote")
-async def get_comment_vote_status(post_id: int, current_user_email: str = Depends(auth.get_current_user)):
-    post = next((p for p in fake_post_db if p.id == post_id), None)
-    if post is None:
+async def get_comment_vote_status(
+    post_id: int, 
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    comment_list = [c for c in comments_db if c.post_id == post_id]
+    
+    comments = db.query(database.Comment).filter(database.Comment.post_id == post_id).all()
+    
     result = {}
-    for comment in comment_list:
-        vote_key = ("comment", comment.id, current_user_email)
-        vote = votes_db.get(vote_key)
+    for comment in comments:
+        vote = db.query(database.Vote).filter(
+            database.Vote.entity_type == "comment",
+            database.Vote.entity_id == comment.id,
+            database.Vote.user_email == current_user_email
+        ).first()
+        
         if vote:
-            result[str(comment.id)] = vote
+            result[str(comment.id)] = vote.vote_type
+    
     return {"vote_type": result}
-
 
 # 获取当前用户信息
 @app.get("/users/me", response_model=UserProfile)
-async def get_current_user_profile(current_user_email: str = Depends(auth.get_current_user)):
-    user = fake_user_db.get(current_user_email)
+async def get_current_user_profile(
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
     return UserProfile(
         user_name=user.user_name,
         user_email=user.user_email,
@@ -249,96 +430,139 @@ async def get_current_user_profile(current_user_email: str = Depends(auth.get_cu
         signature=user.signature
     )
 
-
 # 更新当前用户信息
 @app.put("/users/me")
 async def update_current_user_profile(
     request: UserProfileUpdate,
-    current_user_email: str = Depends(auth.get_current_user)
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
 ):
-    user = fake_user_db.get(current_user_email)
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Update user profile - allow empty strings to clear fields
+    # Update user profile
     user.avatar = request.avatar
     user.signature = request.signature
     
+    db.commit()
+    
     return {"message": "Profile updated successfully"}
 
-
 # 获取当前用户的帖子历史
-@app.get("/users/me/posts", response_model=list[PostBase])
-async def get_user_posts(current_user_email: str = Depends(auth.get_current_user)):
-    user = fake_user_db.get(current_user_email)
+@app.get("/users/me/posts")
+async def get_user_posts(
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    user_posts = [post for post in fake_post_db if post.user_name == user.user_name]
-    # Sort by release_time descending (newest first)
-    user_posts = sorted(user_posts, key=lambda p: p.release_time, reverse=True)
-    return user_posts
-
+    posts = db.query(database.Post).filter(
+        database.Post.user_email == current_user_email
+    ).order_by(database.Post.release_time.desc()).all()
+    
+    result = []
+    for post in posts:
+        result.append({
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "image_url": post.image_url,
+            "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "user_name": post.author.user_name,
+            "upvotes": post.upvotes,
+            "downvotes": post.downvotes
+        })
+    
+    return result
 
 # 获取当前用户的收藏列表
-@app.get("/users/me/favorites", response_model=list[PostBase])
-async def get_user_favorites(current_user_email: str = Depends(auth.get_current_user)):
-    user = fake_user_db.get(current_user_email)
+@app.get("/users/me/favorites")
+async def get_user_favorites(
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Get all favorite post IDs for this user
-    favorite_post_ids = [post_id for (post_id, email) in favorites_db.keys() if email == current_user_email]
+    favorites = db.query(database.Favorite).filter(
+        database.Favorite.user_email == current_user_email
+    ).all()
     
-    # Get the actual posts
-    favorite_posts = [post for post in fake_post_db if post.id in favorite_post_ids]
-    # Sort by release_time descending (newest first)
-    favorite_posts = sorted(favorite_posts, key=lambda p: p.release_time, reverse=True)
-    return favorite_posts
-
+    result = []
+    for favorite in favorites:
+        post = favorite.post
+        result.append({
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "image_url": post.image_url,
+            "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "user_name": post.author.user_name,
+            "upvotes": post.upvotes,
+            "downvotes": post.downvotes
+        })
+    
+    # Sort by release_time descending
+    result.sort(key=lambda x: x["release_time"], reverse=True)
+    
+    return result
 
 # 添加/取消收藏帖子
 @app.post("/posts/{post_id}/favorite")
 async def toggle_favorite(
     post_id: int,
     request: FavoriteCreate,
-    current_user_email: str = Depends(auth.get_current_user)
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
 ):
-    post = next((p for p in fake_post_db if p.id == post_id), None)
-    if post is None:
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     
-    favorite_key = (post_id, current_user_email)
+    # Check if already favorited
+    favorite = db.query(database.Favorite).filter(
+        database.Favorite.post_id == post_id,
+        database.Favorite.user_email == current_user_email
+    ).first()
     
-    if favorite_key in favorites_db:
+    if favorite:
         # Remove from favorites
-        del favorites_db[favorite_key]
+        db.delete(favorite)
+        db.commit()
         return {"message": "Removed from favorites", "is_favorited": False}
     else:
         # Add to favorites
-        favorites_db[favorite_key] = True
+        new_favorite = database.Favorite(
+            post_id=post_id,
+            user_email=current_user_email
+        )
+        db.add(new_favorite)
+        db.commit()
         return {"message": "Added to favorites", "is_favorited": True}
-
 
 # 检查帖子是否被当前用户收藏
 @app.get("/posts/{post_id}/favorite")
 async def check_favorite_status(
     post_id: int,
-    current_user_email: str = Depends(auth.get_current_user)
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
 ):
-    post = next((p for p in fake_post_db if p.id == post_id), None)
-    if post is None:
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     
-    favorite_key = (post_id, current_user_email)
-    is_favorited = favorite_key in favorites_db
+    favorite = db.query(database.Favorite).filter(
+        database.Favorite.post_id == post_id,
+        database.Favorite.user_email == current_user_email
+    ).first()
     
-    return {"is_favorited": is_favorited}
-
+    return {"is_favorited": favorite is not None}
 
 # 测试接口
-
-
 @app.get("/")
 async def root():
     return {"message": "The campus forum backend is running!"}

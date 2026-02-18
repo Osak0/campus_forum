@@ -1,3 +1,6 @@
 .env
 __pycache__/
 *.pyc
+uploads/
+*.db
+backend/main_old.py

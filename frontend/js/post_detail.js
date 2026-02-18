@@ -89,6 +89,20 @@ async function loadPostDetail() {
             });
             container.appendChild(contentEl);
             
+            // Post image (if exists)
+            if (post.image_url && post.image_url.trim() !== '') {
+                const imageEl = document.createElement('img');
+                imageEl.src = post.image_url;
+                imageEl.alt = 'Post image';
+                imageEl.style.maxWidth = '100%';
+                imageEl.style.maxHeight = '500px';
+                imageEl.style.objectFit = 'contain';
+                imageEl.style.borderRadius = '8px';
+                imageEl.style.marginTop = '20px';
+                imageEl.style.display = 'block';
+                container.appendChild(imageEl);
+            }
+            
             // Vote section
             const voteSection = document.createElement('div');
             voteSection.className = 'vote-section';
@@ -172,6 +186,21 @@ async function loadPostDetail() {
                 textarea.style.borderRadius = '6px';
                 textarea.style.resize = 'vertical';
                 commentForm.appendChild(textarea);
+                
+                const imageInput = document.createElement('input');
+                imageInput.type = 'file';
+                imageInput.id = 'comment-image-input';
+                imageInput.accept = 'image/*';
+                imageInput.style.marginTop = '10px';
+                imageInput.style.display = 'block';
+                commentForm.appendChild(imageInput);
+                
+                const imageHint = document.createElement('small');
+                imageHint.style.color = '#888';
+                imageHint.style.display = 'block';
+                imageHint.style.marginTop = '5px';
+                imageHint.textContent = '可选：为评论添加图片';
+                commentForm.appendChild(imageHint);
                 
                 const submitBtn = document.createElement('button');
                 submitBtn.className = 'btn';
@@ -296,21 +325,65 @@ async function loadComments() {
                 const commentDiv = document.createElement('div');
                 commentDiv.className = 'comment-item';
                 
-                commentDiv.innerHTML = `
-                    <div class="comment-header">
-                        <strong>${comment.user_name}</strong>
-                        <span style="color: #888; font-size: 0.9em; margin-left: 10px;">${comment.release_time}</span>
-                    </div>
-                    <div class="comment-content">${comment.content}</div>
-                    <div class="comment-actions" style="margin-top: 10px; display: flex; gap: 10px;">
-                        <button onclick="voteComment(${comment.id}, 'upvote')" class="vote-btn-small" id="comment-upvote-${comment.id}">
-                            👍 <span id="comment-upvote-count-${comment.id}">${comment.upvotes}</span>
-                        </button>
-                        <button onclick="voteComment(${comment.id}, 'downvote')" class="vote-btn-small" id="comment-downvote-${comment.id}">
-                            👎 <span id="comment-downvote-count-${comment.id}">${comment.downvotes}</span>
-                        </button>
-                    </div>
-                `;
+                // Comment header
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'comment-header';
+                
+                const authorStrong = document.createElement('strong');
+                authorStrong.textContent = comment.user_name;
+                headerDiv.appendChild(authorStrong);
+                
+                const timeSpan = document.createElement('span');
+                timeSpan.style.color = '#888';
+                timeSpan.style.fontSize = '0.9em';
+                timeSpan.style.marginLeft = '10px';
+                timeSpan.textContent = comment.release_time;
+                headerDiv.appendChild(timeSpan);
+                
+                commentDiv.appendChild(headerDiv);
+                
+                // Comment content
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'comment-content';
+                contentDiv.textContent = comment.content;
+                commentDiv.appendChild(contentDiv);
+                
+                // Comment image (if exists)
+                if (comment.image_url && comment.image_url.trim() !== '') {
+                    const imageEl = document.createElement('img');
+                    imageEl.src = comment.image_url;
+                    imageEl.alt = 'Comment image';
+                    imageEl.style.maxWidth = '100%';
+                    imageEl.style.maxHeight = '300px';
+                    imageEl.style.objectFit = 'contain';
+                    imageEl.style.borderRadius = '8px';
+                    imageEl.style.marginTop = '10px';
+                    imageEl.style.display = 'block';
+                    commentDiv.appendChild(imageEl);
+                }
+                
+                // Comment actions
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'comment-actions';
+                actionsDiv.style.marginTop = '10px';
+                actionsDiv.style.display = 'flex';
+                actionsDiv.style.gap = '10px';
+                
+                const upvoteBtn = document.createElement('button');
+                upvoteBtn.className = 'vote-btn-small';
+                upvoteBtn.id = `comment-upvote-${comment.id}`;
+                upvoteBtn.onclick = () => voteComment(comment.id, 'upvote');
+                upvoteBtn.innerHTML = `👍 <span id="comment-upvote-count-${comment.id}">${comment.upvotes}</span>`;
+                actionsDiv.appendChild(upvoteBtn);
+                
+                const downvoteBtn = document.createElement('button');
+                downvoteBtn.className = 'vote-btn-small';
+                downvoteBtn.id = `comment-downvote-${comment.id}`;
+                downvoteBtn.onclick = () => voteComment(comment.id, 'downvote');
+                downvoteBtn.innerHTML = `👎 <span id="comment-downvote-count-${comment.id}">${comment.downvotes}</span>`;
+                actionsDiv.appendChild(downvoteBtn);
+                
+                commentDiv.appendChild(actionsDiv);
                 
                 container.appendChild(commentDiv);
             });
@@ -326,6 +399,8 @@ async function loadComments() {
 async function submitComment() {
     const input = document.getElementById('comment-input');
     const content = input.value.trim();
+    const imageInput = document.getElementById('comment-image-input');
+    const imageFile = imageInput ? imageInput.files[0] : null;
     
     if (!content) {
         alert("评论内容不能为空");
@@ -342,6 +417,27 @@ async function submitComment() {
     if (!userEmail) return;
 
     try {
+        let imageUrl = "";
+        
+        // If image is selected, upload it first
+        if (imageFile) {
+            const formData = new FormData();
+            formData.append('file', imageFile);
+            
+            const uploadResponse = await authFetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (uploadResponse && uploadResponse.ok) {
+                const uploadResult = await uploadResponse.json();
+                imageUrl = `${API_BASE_URL}${uploadResult.file_url}`;
+            } else {
+                alert('上传图片失败，请重试');
+                return;
+            }
+        }
+        
         const response = await authFetch(`/posts/${postId}/comments`, {
             method: 'POST',
             headers: {
@@ -349,12 +445,14 @@ async function submitComment() {
             },
             body: JSON.stringify({
                 user_email: userEmail,
-                content: content
+                content: content,
+                image_url: imageUrl
             })
         });
 
         if (response && response.ok) {
             input.value = '';
+            if (imageInput) imageInput.value = '';
             await loadComments(); // Reload comments
         } else {
             alert("评论发表失败，请重试");
