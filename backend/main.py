@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
-from models import UserInDB, UserCreate, PostBase, PostCreate, CommentBase, CommentCreate, VoteCreate, Token
+from models import UserInDB, UserCreate, PostBase, PostCreate, CommentBase, CommentCreate, VoteCreate, Token, UserProfile, UserProfileUpdate, FavoriteCreate
 from fastapi.security import OAuth2PasswordRequestForm
 import auth
 
@@ -20,6 +20,7 @@ next_post_id = 1
 comments_db: list[CommentBase] = []
 next_comment_id: int = 1
 votes_db: dict[tuple[str, int, str], str] = {}
+favorites_db: dict[tuple[int, str], bool] = {}  # (post_id, user_email) -> True
 # 用户注册
 
 
@@ -233,6 +234,109 @@ async def get_comment_vote_status(post_id: int, current_user_email: str = Depend
         if vote:
             result[str(comment.id)] = vote
     return {"vote_type": result}
+
+
+# 获取当前用户信息
+@app.get("/users/me", response_model=UserProfile)
+async def get_current_user_profile(current_user_email: str = Depends(auth.get_current_user)):
+    user = fake_user_db.get(current_user_email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return UserProfile(
+        user_name=user.user_name,
+        user_email=user.user_email,
+        avatar=user.avatar,
+        signature=user.signature
+    )
+
+
+# 更新当前用户信息
+@app.put("/users/me")
+async def update_current_user_profile(
+    request: UserProfileUpdate,
+    current_user_email: str = Depends(auth.get_current_user)
+):
+    user = fake_user_db.get(current_user_email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Update user profile
+    if request.avatar:
+        user.avatar = request.avatar
+    if request.signature:
+        user.signature = request.signature
+    
+    return {"message": "Profile updated successfully"}
+
+
+# 获取当前用户的帖子历史
+@app.get("/users/me/posts", response_model=list[PostBase])
+async def get_user_posts(current_user_email: str = Depends(auth.get_current_user)):
+    user = fake_user_db.get(current_user_email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user_posts = [post for post in fake_post_db if post.user_name == user.user_name]
+    # Sort by release_time descending (newest first)
+    user_posts = sorted(user_posts, key=lambda p: p.release_time, reverse=True)
+    return user_posts
+
+
+# 获取当前用户的收藏列表
+@app.get("/users/me/favorites", response_model=list[PostBase])
+async def get_user_favorites(current_user_email: str = Depends(auth.get_current_user)):
+    user = fake_user_db.get(current_user_email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all favorite post IDs for this user
+    favorite_post_ids = [post_id for (post_id, email) in favorites_db.keys() if email == current_user_email]
+    
+    # Get the actual posts
+    favorite_posts = [post for post in fake_post_db if post.id in favorite_post_ids]
+    # Sort by release_time descending (newest first)
+    favorite_posts = sorted(favorite_posts, key=lambda p: p.release_time, reverse=True)
+    return favorite_posts
+
+
+# 添加/取消收藏帖子
+@app.post("/posts/{post_id}/favorite")
+async def toggle_favorite(
+    post_id: int,
+    request: FavoriteCreate,
+    current_user_email: str = Depends(auth.get_current_user)
+):
+    post = next((p for p in fake_post_db if p.id == post_id), None)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    favorite_key = (post_id, current_user_email)
+    
+    if favorite_key in favorites_db:
+        # Remove from favorites
+        del favorites_db[favorite_key]
+        return {"message": "Removed from favorites", "is_favorited": False}
+    else:
+        # Add to favorites
+        favorites_db[favorite_key] = True
+        return {"message": "Added to favorites", "is_favorited": True}
+
+
+# 检查帖子是否被当前用户收藏
+@app.get("/posts/{post_id}/favorite")
+async def check_favorite_status(
+    post_id: int,
+    current_user_email: str = Depends(auth.get_current_user)
+):
+    post = next((p for p in fake_post_db if p.id == post_id), None)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    favorite_key = (post_id, current_user_email)
+    is_favorited = favorite_key in favorites_db
+    
+    return {"is_favorited": is_favorited}
+
 
 # 测试接口
 

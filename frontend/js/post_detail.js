@@ -36,11 +36,19 @@ async function loadPostDetail() {
             
             // 获取用户投票状态（如果已登录）
             let userVote = null;
+            let isFavorited = false;
             if (isLoggedIn()) {
                 const voteResponse = await authFetch(`/posts/${postId}/vote`);
                 if (voteResponse && voteResponse.ok) {
                     const voteData = await voteResponse.json();
                     userVote = voteData.vote_type;
+                }
+                
+                // 获取收藏状态
+                const favoriteResponse = await authFetch(`/posts/${postId}/favorite`);
+                if (favoriteResponse && favoriteResponse.ok) {
+                    const favoriteData = await favoriteResponse.json();
+                    isFavorited = favoriteData.is_favorited;
                 }
             }
             
@@ -54,13 +62,19 @@ async function loadPostDetail() {
                 <div class="detail-content" style="margin-top: 20px; font-size: 1.1em; line-height: 1.6;">
                     ${post.content.replace(/\n/g, '<br>')}
                 </div>
-                <div class="vote-section" style="margin-top: 20px; display: flex; align-items: center; gap: 15px;">
+                <div class="vote-section" style="margin-top: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
                     <button onclick="votePost('upvote')" class="vote-btn ${userVote === 'upvote' ? 'active-upvote' : ''}" id="upvote-btn">
                         👍 <span id="upvote-count">${post.upvotes}</span>
                     </button>
                     <button onclick="votePost('downvote')" class="vote-btn ${userVote === 'downvote' ? 'active-downvote' : ''}" id="downvote-btn">
                         👎 <span id="downvote-count">${post.downvotes}</span>
                     </button>
+                    ${isLoggedIn() ? `
+                        <button onclick="toggleFavorite()" class="favorite-btn ${isFavorited ? 'favorited' : ''}" id="favorite-btn">
+                            <span id="favorite-icon">${isFavorited ? '⭐' : '☆'}</span>
+                            <span id="favorite-text">${isFavorited ? '已收藏' : '收藏'}</span>
+                        </button>
+                    ` : ''}
                 </div>
                 <hr style="margin-top: 30px;">
                 
@@ -278,5 +292,50 @@ async function voteComment(commentId, voteType) {
     } catch (error) {
         console.error("投票失败:", error);
         alert("投票失败，请重试");
+    }
+}
+
+async function toggleFavorite() {
+    if (!isLoggedIn()) {
+        alert("请先登录");
+        window.location.href = "login.html";
+        return;
+    }
+
+    const userEmail = getUserEmail();
+    if (!userEmail) return;
+
+    try {
+        const response = await authFetch(`/posts/${postId}/favorite`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_email: userEmail
+            })
+        });
+
+        if (response && response.ok) {
+            const data = await response.json();
+            
+            // Update button appearance
+            const favoriteBtn = document.getElementById('favorite-btn');
+            const favoriteIcon = document.getElementById('favorite-icon');
+            const favoriteText = document.getElementById('favorite-text');
+            
+            if (data.is_favorited) {
+                favoriteBtn.classList.add('favorited');
+                favoriteIcon.textContent = '⭐';
+                favoriteText.textContent = '已收藏';
+            } else {
+                favoriteBtn.classList.remove('favorited');
+                favoriteIcon.textContent = '☆';
+                favoriteText.textContent = '收藏';
+            }
+        }
+    } catch (error) {
+        console.error("收藏失败:", error);
+        alert("收藏失败，请重试");
     }
 }
