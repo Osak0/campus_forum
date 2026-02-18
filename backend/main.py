@@ -565,4 +565,4 @@ async def check_favorite_status(
 # 测试接口
 @app.get("/")
 async def root():
-    return {"message": "The campus forum backend is running with MySQL!"}
+    return {"message": "The campus forum backend is running!"}
