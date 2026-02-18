@@ -2,6 +2,17 @@
 const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
 
+// 获取用户邮箱的辅助函数
+function getUserEmail() {
+    const userEmail = localStorage.getItem('user_email');
+    if (!userEmail) {
+        alert("请重新登录");
+        window.location.href = "login.html";
+        return null;
+    }
+    return userEmail;
+}
+
 // 页面加载逻辑
 document.addEventListener('DOMContentLoaded', async () => {
     if (!postId) {
@@ -86,16 +97,10 @@ async function votePost(voteType) {
         return;
     }
 
-    try {
-        // Get user email from token (we need to decode it or get it from a profile endpoint)
-        // For simplicity, let's assume we store email in localStorage when logging in
-        const userEmail = localStorage.getItem('user_email');
-        if (!userEmail) {
-            alert("请重新登录");
-            window.location.href = "login.html";
-            return;
-        }
+    const userEmail = getUserEmail();
+    if (!userEmail) return;
 
+    try {
         const response = await authFetch(`/posts/${postId}/vote`, {
             method: 'POST',
             headers: {
@@ -198,14 +203,10 @@ async function submitComment() {
         return;
     }
 
-    try {
-        const userEmail = localStorage.getItem('user_email');
-        if (!userEmail) {
-            alert("请重新登录");
-            window.location.href = "login.html";
-            return;
-        }
+    const userEmail = getUserEmail();
+    if (!userEmail) return;
 
+    try {
         const response = await authFetch(`/posts/${postId}/comments`, {
             method: 'POST',
             headers: {
@@ -236,14 +237,10 @@ async function voteComment(commentId, voteType) {
         return;
     }
 
-    try {
-        const userEmail = localStorage.getItem('user_email');
-        if (!userEmail) {
-            alert("请重新登录");
-            window.location.href = "login.html";
-            return;
-        }
+    const userEmail = getUserEmail();
+    if (!userEmail) return;
 
+    try {
         const response = await authFetch(`/comments/${commentId}/vote`, {
             method: 'POST',
             headers: {
