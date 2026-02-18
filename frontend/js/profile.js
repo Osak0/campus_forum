@@ -49,7 +49,11 @@ async function loadProfile() {
             avatarDiv.textContent = ''; // Clear existing content safely
             avatarDiv.appendChild(img);
         } else {
-            avatarDiv.innerHTML = '<span style="font-size: 4rem;">👤</span>';
+            avatarDiv.textContent = ''; // Clear existing content safely
+            const iconSpan = document.createElement('span');
+            iconSpan.style.fontSize = '4rem';
+            iconSpan.textContent = '👤';
+            avatarDiv.appendChild(iconSpan);
         }
     } else {
         document.getElementById('profile-name').textContent = "加载失败";

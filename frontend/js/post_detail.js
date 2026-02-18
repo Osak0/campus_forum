@@ -103,7 +103,11 @@ async function loadPostDetail() {
             upvoteBtn.id = 'upvote-btn';
             upvoteBtn.className = `vote-btn ${userVote === 'upvote' ? 'active-upvote' : ''}`;
             upvoteBtn.onclick = () => votePost('upvote');
-            upvoteBtn.innerHTML = `👍 <span id="upvote-count">${post.upvotes}</span>`;
+            upvoteBtn.textContent = '👍 ';
+            const upvoteCount = document.createElement('span');
+            upvoteCount.id = 'upvote-count';
+            upvoteCount.textContent = post.upvotes;
+            upvoteBtn.appendChild(upvoteCount);
             voteSection.appendChild(upvoteBtn);
             
             // Downvote button
@@ -111,7 +115,11 @@ async function loadPostDetail() {
             downvoteBtn.id = 'downvote-btn';
             downvoteBtn.className = `vote-btn ${userVote === 'downvote' ? 'active-downvote' : ''}`;
             downvoteBtn.onclick = () => votePost('downvote');
-            downvoteBtn.innerHTML = `👎 <span id="downvote-count">${post.downvotes}</span>`;
+            downvoteBtn.textContent = '👎 ';
+            const downvoteCount = document.createElement('span');
+            downvoteCount.id = 'downvote-count';
+            downvoteCount.textContent = post.downvotes;
+            downvoteBtn.appendChild(downvoteCount);
             voteSection.appendChild(downvoteBtn);
             
             // Favorite button (if logged in)
@@ -120,7 +128,17 @@ async function loadPostDetail() {
                 favoriteBtn.id = 'favorite-btn';
                 favoriteBtn.className = `favorite-btn ${isFavorited ? 'favorited' : ''}`;
                 favoriteBtn.onclick = toggleFavorite;
-                favoriteBtn.innerHTML = `<span id="favorite-icon">${isFavorited ? '⭐' : '☆'}</span><span id="favorite-text">${isFavorited ? '已收藏' : '收藏'}</span>`;
+                
+                const favoriteIcon = document.createElement('span');
+                favoriteIcon.id = 'favorite-icon';
+                favoriteIcon.textContent = isFavorited ? '⭐' : '☆';
+                favoriteBtn.appendChild(favoriteIcon);
+                
+                const favoriteText = document.createElement('span');
+                favoriteText.id = 'favorite-text';
+                favoriteText.textContent = isFavorited ? '已收藏' : '收藏';
+                favoriteBtn.appendChild(favoriteText);
+                
                 voteSection.appendChild(favoriteBtn);
             }
             
@@ -166,7 +184,12 @@ async function loadPostDetail() {
             } else {
                 const loginPrompt = document.createElement('p');
                 loginPrompt.style.color = '#888';
-                loginPrompt.innerHTML = '请<a href="login.html">登录</a>后发表评论';
+                loginPrompt.appendChild(document.createTextNode('请'));
+                const loginLink = document.createElement('a');
+                loginLink.href = 'login.html';
+                loginLink.textContent = '登录';
+                loginPrompt.appendChild(loginLink);
+                loginPrompt.appendChild(document.createTextNode('后发表评论'));
                 commentsSection.appendChild(loginPrompt);
             }
             
