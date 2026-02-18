@@ -9,6 +9,8 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserInDB(UserBase):
+    hashed_password: str
 
 class UserLogin(BaseModel):
     user_email: EmailStr
@@ -16,7 +18,6 @@ class UserLogin(BaseModel):
 
 
 class PostCreate(BaseModel):
-    author_email: EmailStr
     title: str
     content: str
 
@@ -37,3 +38,8 @@ class CommentBase(CommentCreate):
     post_id: int
     release_time: str
     user_name: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
