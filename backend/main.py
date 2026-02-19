@@ -357,7 +357,6 @@ async def vote(
             else:
                 post.downvotes += 1
             
-            db.commit()
             if post.user_email != current_user_email:
                 create_notification(
                     db,
@@ -365,7 +364,7 @@ async def vote(
                     f"{user.user_name} 对你的帖子《{post.title}》点了{'赞' if request.vote_type == 'upvote' else '反对'}",
                     "vote"
                 )
-                db.commit()
+            db.commit()
             return {"message": "Vote updated successfully", "upvotes": post.upvotes, "downvotes": post.downvotes}
     else:
         # New vote
@@ -381,7 +380,6 @@ async def vote(
             vote_type=request.vote_type
         )
         db.add(new_vote)
-        db.commit()
         if post.user_email != current_user_email:
             create_notification(
                 db,
@@ -389,7 +387,7 @@ async def vote(
                 f"{user.user_name} 对你的帖子《{post.title}》点了{'赞' if request.vote_type == 'upvote' else '反对'}",
                 "vote"
             )
-            db.commit()
+        db.commit()
         return {"message": "Vote recorded successfully", "upvotes": post.upvotes, "downvotes": post.downvotes}
 
 # 评论点赞/踩接口
@@ -439,7 +437,6 @@ async def vote_comment(
             else:
                 comment.downvotes += 1
             
-            db.commit()
             if comment.user_email != current_user_email:
                 create_notification(
                     db,
@@ -447,7 +444,7 @@ async def vote_comment(
                     f"{user.user_name} 对你的评论点了{'赞' if request.vote_type == 'upvote' else '反对'}",
                     "vote"
                 )
-                db.commit()
+            db.commit()
             return {"message": "Vote updated successfully", "upvotes": comment.upvotes, "downvotes": comment.downvotes}
     else:
         # New vote
@@ -463,7 +460,6 @@ async def vote_comment(
             vote_type=request.vote_type
         )
         db.add(new_vote)
-        db.commit()
         if comment.user_email != current_user_email:
             create_notification(
                 db,
@@ -471,7 +467,7 @@ async def vote_comment(
                 f"{user.user_name} 对你的评论点了{'赞' if request.vote_type == 'upvote' else '反对'}",
                 "vote"
             )
-            db.commit()
+        db.commit()
         return {"message": "Vote recorded successfully", "upvotes": comment.upvotes, "downvotes": comment.downvotes}
 
 
@@ -729,25 +725,6 @@ async def list_tags(db: Session = Depends(database.get_db)):
     return {"tags": sorted([t[0] for t in tags if t and t[0]])}
 
 
-@app.get("/search/posts")
-async def search_posts(keyword: str = Query(default=""), db: Session = Depends(database.get_db)):
-    like_keyword = f"%{keyword}%"
-    posts = db.query(database.Post).filter(
-        (database.Post.title.ilike(like_keyword)) | (database.Post.content.ilike(like_keyword))
-    ).order_by(database.Post.release_time.desc()).all()
-    return [{
-        "id": post.id,
-        "title": post.title,
-        "content": post.content,
-        "image_url": post.image_url,
-        "tag": post.tag,
-        "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
-        "user_name": post.author.user_name,
-        "upvotes": post.upvotes,
-        "downvotes": post.downvotes
-    } for post in posts]
-
-
 @app.get("/notifications")
 async def get_notifications(
     current_user_email: str = Depends(auth.get_current_user),
@@ -758,7 +735,7 @@ async def get_notifications(
     ).order_by(database.Notification.release_time.desc()).all()
     unread_count = db.query(database.Notification).filter(
         database.Notification.user_email == current_user_email,
-        database.Notification.is_read == False
+        database.Notification.is_read.is_(False)
     ).count()
     return {
         "unread_count": unread_count,
@@ -796,7 +773,7 @@ async def mark_all_notifications_read(
 ):
     db.query(database.Notification).filter(
         database.Notification.user_email == current_user_email,
-        database.Notification.is_read == False
+        database.Notification.is_read.is_(False)
     ).update({"is_read": True})
     db.commit()
     return {"message": "All notifications marked as read"}

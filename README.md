@@ -160,7 +160,7 @@ The frontend will be available at `http://localhost:3000`
 - `PUT /comments/{id}` - Edit own comment
 - `DELETE /comments/{id}` - Delete own comment
 - `GET /tags` - Get post tags
-- `GET /search/posts` - Search posts by keyword
+- `GET /posts/?keyword=...` - Search posts by title/content keyword
 - `POST /posts/{id}/vote` - Vote on post
 - `POST /comments/{id}/vote` - Vote on comment
 - `GET /users/me` - Get current user profile
