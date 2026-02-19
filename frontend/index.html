@@ -17,7 +17,16 @@
     <!-- 帖子列表容器 -->
     <div class="container" style="max-width: 800px; margin: 20px auto;">
         <h2 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">最新动态</h2>
-        
+        <div style="display:flex; gap:10px; margin-bottom: 12px;">
+            <input id="search-input" type="text" placeholder="搜索标题或内容关键词..." style="margin-bottom:0;">
+            <button class="btn btn-secondary" onclick="searchPosts()">搜索</button>
+            <button class="btn btn-secondary" onclick="clearSearch()">清空</button>
+        </div>
+        <div style="margin-bottom: 12px;">
+            <button class="btn btn-secondary btn-sm" onclick="toggleTags()">折叠/展开标签</button>
+            <div id="tag-filter-container" style="margin-top: 10px; display:flex; flex-wrap:wrap; gap:8px;"></div>
+        </div>
+         
         <!-- 这里的内容由 index.js 动态填充 -->
         <div id="posts-container">
             <p style="text-align:center; color:#888;">正在加载...</p>

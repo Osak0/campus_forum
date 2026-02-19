@@ -10,6 +10,7 @@ document.getElementById('createPostForm').addEventListener('submit', async (e) =
     
     const title = document.getElementById('title').value;
     const content = document.getElementById('content').value;
+    const tag = document.getElementById('tag').value;
     const imageFile = document.getElementById('image').files[0];
 
     if (!title || !content) {
@@ -49,7 +50,7 @@ document.getElementById('createPostForm').addEventListener('submit', async (e) =
         const response = await authFetch('/posts/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, content, image_url: imageUrl })
+            body: JSON.stringify({ title, content, image_url: imageUrl, tag })
         });
 
         if (response && response.ok) {

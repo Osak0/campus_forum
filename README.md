@@ -8,10 +8,14 @@ Thanks a lot for your support.
 
 - 用户注册和登录 (User registration and login)
 - 发布帖子和评论 (Create posts and comments)
+- 编辑/删除自己的帖子和评论 (Edit/Delete own posts and comments)
 - 帖子和评论支持图片 (Posts and comments support images)
+- 帖子标签分类与筛选 (Post tags and filtering)
+- 帖子关键词模糊搜索 (Fuzzy search by title/content)
+- 通知中心（回复/点赞/反对，已读未读） (Notification center with read/unread)
 - 点赞和踩 (Upvote and downvote)
 - 收藏帖子 (Favorite posts)
-- 个人主页 (Personal profile page)
+- 个人主页与设置页签 (Personal profile with settings tab)
 - 本地头像上传 (Local avatar upload)
 - MySQL 数据库支持 (MySQL database support)
 
@@ -121,7 +125,9 @@ The frontend will be available at `http://localhost:3000`
 6. Upload your avatar from local files
 7. Upvote/downvote posts and comments
 8. Favorite posts to save them
-9. View your profile page with your posts and favorites
+9. Use tags/search to quickly find topics
+10. View notifications and mark read/unread
+11. Manage profile in Settings tab (avatar/signature/preferred tags)
 
 ## File Upload Support / 文件上传支持
 
@@ -146,16 +152,26 @@ The frontend will be available at `http://localhost:3000`
 - `POST /upload` - Upload image file
 - `GET /posts/` - Get all posts
 - `POST /posts/` - Create new post
+- `PUT /posts/{id}` - Edit own post
+- `DELETE /posts/{id}` - Delete own post
 - `GET /posts/{id}` - Get post details
 - `POST /posts/{id}/comments` - Add comment to post
 - `GET /posts/{id}/comments` - Get post comments
+- `PUT /comments/{id}` - Edit own comment
+- `DELETE /comments/{id}` - Delete own comment
+- `GET /tags` - Get post tags
+- `GET /posts/?keyword=...` - Search posts by title/content keyword
 - `POST /posts/{id}/vote` - Vote on post
 - `POST /comments/{id}/vote` - Vote on comment
 - `GET /users/me` - Get current user profile
-- `PUT /users/me` - Update user profile
+- `GET /users/me/settings` - Get current user settings
+- `PUT /users/me/settings` - Update current user settings
 - `GET /users/me/posts` - Get user's posts
 - `GET /users/me/favorites` - Get user's favorites
 - `POST /posts/{id}/favorite` - Toggle favorite
+- `GET /notifications` - Get notification list
+- `PUT /notifications/{id}/read` - Mark one notification as read
+- `PUT /notifications/read-all` - Mark all notifications as read
 
 ## Development / 开发
 
