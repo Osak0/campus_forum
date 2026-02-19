@@ -1,5 +1,5 @@
 // API 基础路径 (根据你的后端地址调整，通常是本地 8000)
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "http://localhost:8000";
 
 // --- Token 管理 ---
 
@@ -78,6 +78,7 @@ function updateNavbar() {
 // 全局退出函数
 function logout() {
     removeToken();
+    localStorage.removeItem('user_email');
     window.location.href = "index.html";
 }
 

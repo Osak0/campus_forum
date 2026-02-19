@@ -20,6 +20,8 @@ class UserCreate(UserBase):
 
 class UserInDB(UserBase):
     hashed_password: str
+    avatar: str = ""  # Avatar URL
+    signature: str = ""  # Personal signature/bio
 
 class UserLogin(BaseModel):
     user_email: EmailStr
@@ -29,6 +31,7 @@ class UserLogin(BaseModel):
 class PostCreate(BaseModel):
     title: str
     content: str
+    image_url: str = ""
 
 
 class PostBase(PostCreate):
@@ -42,6 +45,7 @@ class PostBase(PostCreate):
 class CommentCreate(BaseModel):
     user_email: EmailStr
     content: str = Field(..., max_length=500)
+    image_url: str = ""
 
 
 class CommentBase(CommentCreate):
@@ -60,3 +64,19 @@ class VoteCreate(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class UserProfile(BaseModel):
+    user_name: str
+    user_email: EmailStr
+    avatar: str = ""
+    signature: str = ""
+
+
+class UserProfileUpdate(BaseModel):
+    avatar: str = ""
+    signature: str = ""
+
+
+class FavoriteCreate(BaseModel):
+    user_email: EmailStr

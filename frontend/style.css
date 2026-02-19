@@ -230,3 +230,255 @@ textarea {
 .text-center { text-align: center; }
 .mt-20 { margin-top: 20px; }
 .hidden { display: none !important; }
+
+/* 投票按钮样式 */
+.vote-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    font-size: 16px;
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.vote-btn:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+}
+
+.vote-btn.active-upvote {
+    background-color: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.vote-btn.active-downvote {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.vote-btn-small {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 10px;
+    font-size: 14px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.vote-btn-small:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.vote-btn-small.active-upvote {
+    background-color: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.vote-btn-small.active-downvote {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+/* 评论区样式 */
+.comments-section {
+    margin-top: 30px;
+}
+
+.comments-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.comment-item {
+    background-color: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border-left: 3px solid #007bff;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.comment-content {
+    color: #333;
+    line-height: 1.6;
+    margin-bottom: 5px;
+}
+
+.comment-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+/* Profile Card Styles */
+.profile-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 30px;
+    margin-bottom: 20px;
+}
+
+.profile-avatar-section {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-info h2 {
+    margin: 0 0 5px 0;
+    font-size: 1.8rem;
+    color: #333;
+}
+
+.profile-info p {
+    margin: 5px 0;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Profile Tabs */
+.profile-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #495057;
+}
+
+.tab-btn:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.tab-btn.active {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+/* Tab Content */
+.tab-content {
+    min-height: 300px;
+}
+
+/* Posts Grid */
+.posts-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.post-card {
+    cursor: pointer;
+}
+
+.post-title {
+    font-size: 1.3rem;
+    color: #333;
+    margin: 0 0 10px 0;
+}
+
+.post-preview {
+    color: #666;
+    line-height: 1.6;
+    margin: 10px 0;
+}
+
+.post-meta {
+    font-size: 0.85rem;
+    color: #999;
+    margin-top: 15px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Favorite Button Styles */
+.favorite-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    background-color: #fff;
+    border: 2px solid #ffc107;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #856404;
+}
+
+.favorite-btn:hover {
+    background-color: #fff3cd;
+    border-color: #ff9800;
+}
+
+.favorite-btn.favorited {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: white;
+}
+
+.favorite-btn.favorited:hover {
+    background-color: #ff9800;
+    border-color: #ff9800;
+}
