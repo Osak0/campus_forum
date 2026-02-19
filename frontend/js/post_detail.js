@@ -71,6 +71,10 @@ async function loadPostDetail() {
             timeSpan.textContent = `时间: ${post.release_time}`;
             metaEl.appendChild(authorSpan);
             metaEl.appendChild(timeSpan);
+            const tagSpan = document.createElement('span');
+            tagSpan.style.marginLeft = '15px';
+            tagSpan.textContent = `标签: ${post.tag || '全部'}`;
+            metaEl.appendChild(tagSpan);
             container.appendChild(metaEl);
             
             // Content
@@ -157,6 +161,28 @@ async function loadPostDetail() {
             }
             
             container.appendChild(voteSection);
+
+            if (isLoggedIn() && getUserEmail() === post.user_email) {
+                const postActionSection = document.createElement('div');
+                postActionSection.style.marginTop = '15px';
+                postActionSection.style.display = 'flex';
+                postActionSection.style.gap = '10px';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-secondary btn-sm';
+                editBtn.textContent = '编辑帖子';
+                editBtn.onclick = () => editPost(post);
+                postActionSection.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-sm';
+                deleteBtn.style.backgroundColor = '#dc3545';
+                deleteBtn.textContent = '删除帖子';
+                deleteBtn.onclick = deletePost;
+                postActionSection.appendChild(deleteBtn);
+
+                container.appendChild(postActionSection);
+            }
             
             // Separator
             const hr1 = document.createElement('hr');
@@ -382,6 +408,21 @@ async function loadComments() {
                 downvoteBtn.onclick = () => voteComment(comment.id, 'downvote');
                 downvoteBtn.innerHTML = `👎 <span id="comment-downvote-count-${comment.id}">${comment.downvotes}</span>`;
                 actionsDiv.appendChild(downvoteBtn);
+
+                if (isLoggedIn() && getUserEmail() === comment.user_email) {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'btn btn-secondary btn-sm';
+                    editBtn.textContent = '编辑';
+                    editBtn.onclick = () => editComment(comment);
+                    actionsDiv.appendChild(editBtn);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn btn-sm';
+                    deleteBtn.style.backgroundColor = '#dc3545';
+                    deleteBtn.textContent = '删除';
+                    deleteBtn.onclick = () => deleteComment(comment.id);
+                    actionsDiv.appendChild(deleteBtn);
+                }
                 
                 commentDiv.appendChild(actionsDiv);
                 
@@ -556,5 +597,68 @@ async function toggleFavorite() {
     } catch (error) {
         console.error("收藏失败:", error);
         alert("收藏失败，请重试");
+    }
+}
+
+async function editPost(post) {
+    const title = prompt('编辑标题', post.title);
+    if (title === null) return;
+    const content = prompt('编辑内容', post.content);
+    if (content === null) return;
+    const tag = prompt('编辑标签', post.tag || '全部');
+    if (tag === null) return;
+    const response = await authFetch(`/posts/${postId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            title: title.trim(),
+            content: content.trim(),
+            image_url: post.image_url || '',
+            tag: tag.trim() || '全部'
+        })
+    });
+    if (response && response.ok) {
+        await loadPostDetail();
+    } else {
+        alert('编辑帖子失败');
+    }
+}
+
+async function deletePost() {
+    if (!confirm('确认删除该帖子吗？')) return;
+    const response = await authFetch(`/posts/${postId}`, { method: 'DELETE' });
+    if (response && response.ok) {
+        alert('删除成功');
+        window.location.href = 'index.html';
+    } else {
+        alert('删除失败');
+    }
+}
+
+async function editComment(comment) {
+    const content = prompt('编辑评论', comment.content);
+    if (content === null) return;
+    const response = await authFetch(`/comments/${comment.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            content: content.trim(),
+            image_url: comment.image_url || ''
+        })
+    });
+    if (response && response.ok) {
+        await loadComments();
+    } else {
+        alert('编辑评论失败');
+    }
+}
+
+async function deleteComment(commentId) {
+    if (!confirm('确认删除该评论吗？')) return;
+    const response = await authFetch(`/comments/${commentId}`, { method: 'DELETE' });
+    if (response && response.ok) {
+        await loadComments();
+    } else {
+        alert('删除评论失败');
     }
 }

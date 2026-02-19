@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -31,11 +31,13 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     avatar = Column(Text, default="")
     signature = Column(Text, default="")
+    preferred_tags = Column(Text, default="")
     
     posts = relationship("Post", back_populates="author", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="author", cascade="all, delete-orphan")
     votes = relationship("Vote", back_populates="user", cascade="all, delete-orphan")
     favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 
 class Post(Base):
@@ -45,6 +47,7 @@ class Post(Base):
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     image_url = Column(Text, default="")
+    tag = Column(String(50), default="全部")
     release_time = Column(DateTime, default=datetime.now)
     user_email = Column(String(255), ForeignKey("users.user_email"), nullable=False)
     upvotes = Column(Integer, default=0)
@@ -92,6 +95,19 @@ class Favorite(Base):
     
     user = relationship("User", back_populates="favorites")
     post = relationship("Post", back_populates="favorites")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_email = Column(String(255), ForeignKey("users.user_email"), nullable=False)
+    message = Column(Text, nullable=False)
+    notification_type = Column(String(20), nullable=False)  # "reply" / "vote"
+    is_read = Column(Boolean, default=False)
+    release_time = Column(DateTime, default=datetime.now)
+
+    user = relationship("User", back_populates="notifications")
 
 
 # Dependency to get DB session

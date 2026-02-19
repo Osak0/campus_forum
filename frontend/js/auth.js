@@ -64,14 +64,29 @@ function updateNavbar() {
     if (isLoggedIn()) {
         authContainer.innerHTML = `
             <a href="create_post.html" class="btn btn-sm">➕ 发帖</a>
+            <a href="notifications.html" class="btn btn-sm btn-secondary" id="notification-link">🔔 通知</a>
             <a href="profile.html" class="btn btn-sm btn-secondary">我的主页</a>
             <button onclick="logout()" class="btn btn-sm" style="background:#dc3545">退出</button>
         `;
+        updateNotificationBadge();
     } else {
         authContainer.innerHTML = `
             <a href="login.html" class="btn btn-sm">登录</a>
             <a href="register.html" class="btn btn-sm btn-secondary">注册</a>
         `;
+    }
+}
+
+async function updateNotificationBadge() {
+    const link = document.getElementById('notification-link');
+    if (!link) return;
+    const response = await authFetch('/notifications');
+    if (response && response.ok) {
+        const data = await response.json();
+        const unread = data.unread_count || 0;
+        if (unread > 0) {
+            link.textContent = `🔔 通知(${unread})`;
+        }
     }
 }
 

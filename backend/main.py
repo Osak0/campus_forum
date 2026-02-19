@@ -1,8 +1,11 @@
-from fastapi import FastAPI, HTTPException, status, Depends, UploadFile, File
+from fastapi import FastAPI, HTTPException, status, Depends, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime, timedelta
-from models import UserCreate, PostCreate, CommentCreate, VoteCreate, Token, UserProfile, UserProfileUpdate, FavoriteCreate
+from models import (
+    UserCreate, PostCreate, CommentCreate, VoteCreate, Token,
+    UserProfile, UserProfileUpdate, FavoriteCreate, PostUpdate, CommentUpdate
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import auth
@@ -46,6 +49,17 @@ def save_upload_file(upload_file: UploadFile, prefix: str = "") -> str:
         shutil.copyfileobj(upload_file.file, buffer)
     
     return f"/uploads/{unique_filename}"
+
+
+def create_notification(db: Session, user_email: str, message: str, notification_type: str):
+    notification = database.Notification(
+        user_email=user_email,
+        message=message,
+        notification_type=notification_type,
+        is_read=False,
+        release_time=datetime.now()
+    )
+    db.add(notification)
 
 # 用户注册
 @app.post("/register", status_code=status.HTTP_201_CREATED)
@@ -127,6 +141,7 @@ async def create_post(
         title=request.title,
         content=request.content,
         image_url=request.image_url,
+        tag=request.tag,
         user_email=current_user_email,
         release_time=datetime.now(),
         upvotes=0,
@@ -141,8 +156,20 @@ async def create_post(
 
 # 获取帖子列表
 @app.get("/posts/")
-async def list_posts(db: Session = Depends(database.get_db)):
-    posts = db.query(database.Post).order_by(database.Post.release_time.desc()).all()
+async def list_posts(
+    tag: str | None = Query(default=None),
+    keyword: str | None = Query(default=None),
+    db: Session = Depends(database.get_db)
+):
+    query = db.query(database.Post)
+    if tag and tag != "全部":
+        query = query.filter(database.Post.tag == tag)
+    if keyword:
+        like_keyword = f"%{keyword}%"
+        query = query.filter(
+            (database.Post.title.ilike(like_keyword)) | (database.Post.content.ilike(like_keyword))
+        )
+    posts = query.order_by(database.Post.release_time.desc()).all()
     
     result = []
     for post in posts:
@@ -151,6 +178,7 @@ async def list_posts(db: Session = Depends(database.get_db)):
             "title": post.title,
             "content": post.content,
             "image_url": post.image_url,
+            "tag": post.tag,
             "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
             "user_name": post.author.user_name,
             "upvotes": post.upvotes,
@@ -171,6 +199,8 @@ async def get_post(post_id: int, db: Session = Depends(database.get_db)):
         "title": post.title,
         "content": post.content,
         "image_url": post.image_url,
+        "tag": post.tag,
+        "user_email": post.user_email,
         "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
         "user_name": post.author.user_name,
         "upvotes": post.upvotes,
@@ -204,10 +234,54 @@ async def create_comment(
     )
     
     db.add(new_comment)
+    if post.user_email != current_user_email:
+        create_notification(
+            db,
+            post.user_email,
+            f"{user.user_name} 回复了你的帖子《{post.title}》",
+            "reply"
+        )
     db.commit()
     db.refresh(new_comment)
     
     return {"message": "Comment created successfully", "comment_id": new_comment.id}
+
+
+@app.put("/posts/{post_id}")
+async def update_post(
+    post_id: int,
+    request: PostUpdate,
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if post.user_email != current_user_email:
+        raise HTTPException(status_code=403, detail="No permission to edit this post")
+
+    post.title = request.title
+    post.content = request.content
+    post.image_url = request.image_url
+    post.tag = request.tag
+    db.commit()
+    return {"message": "Post updated successfully"}
+
+
+@app.delete("/posts/{post_id}")
+async def delete_post(
+    post_id: int,
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if post.user_email != current_user_email:
+        raise HTTPException(status_code=403, detail="No permission to delete this post")
+    db.delete(post)
+    db.commit()
+    return {"message": "Post deleted successfully"}
 
 # 获取评论列表
 @app.get("/posts/{post_id}/comments")
@@ -284,6 +358,14 @@ async def vote(
                 post.downvotes += 1
             
             db.commit()
+            if post.user_email != current_user_email:
+                create_notification(
+                    db,
+                    post.user_email,
+                    f"{user.user_name} 对你的帖子《{post.title}》点了{'赞' if request.vote_type == 'upvote' else '反对'}",
+                    "vote"
+                )
+                db.commit()
             return {"message": "Vote updated successfully", "upvotes": post.upvotes, "downvotes": post.downvotes}
     else:
         # New vote
@@ -300,6 +382,14 @@ async def vote(
         )
         db.add(new_vote)
         db.commit()
+        if post.user_email != current_user_email:
+            create_notification(
+                db,
+                post.user_email,
+                f"{user.user_name} 对你的帖子《{post.title}》点了{'赞' if request.vote_type == 'upvote' else '反对'}",
+                "vote"
+            )
+            db.commit()
         return {"message": "Vote recorded successfully", "upvotes": post.upvotes, "downvotes": post.downvotes}
 
 # 评论点赞/踩接口
@@ -350,6 +440,14 @@ async def vote_comment(
                 comment.downvotes += 1
             
             db.commit()
+            if comment.user_email != current_user_email:
+                create_notification(
+                    db,
+                    comment.user_email,
+                    f"{user.user_name} 对你的评论点了{'赞' if request.vote_type == 'upvote' else '反对'}",
+                    "vote"
+                )
+                db.commit()
             return {"message": "Vote updated successfully", "upvotes": comment.upvotes, "downvotes": comment.downvotes}
     else:
         # New vote
@@ -366,7 +464,49 @@ async def vote_comment(
         )
         db.add(new_vote)
         db.commit()
+        if comment.user_email != current_user_email:
+            create_notification(
+                db,
+                comment.user_email,
+                f"{user.user_name} 对你的评论点了{'赞' if request.vote_type == 'upvote' else '反对'}",
+                "vote"
+            )
+            db.commit()
         return {"message": "Vote recorded successfully", "upvotes": comment.upvotes, "downvotes": comment.downvotes}
+
+
+@app.put("/comments/{comment_id}")
+async def update_comment(
+    comment_id: int,
+    request: CommentUpdate,
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    comment = db.query(database.Comment).filter(database.Comment.id == comment_id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.user_email != current_user_email:
+        raise HTTPException(status_code=403, detail="No permission to edit this comment")
+    comment.content = request.content
+    comment.image_url = request.image_url
+    db.commit()
+    return {"message": "Comment updated successfully"}
+
+
+@app.delete("/comments/{comment_id}")
+async def delete_comment(
+    comment_id: int,
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    comment = db.query(database.Comment).filter(database.Comment.id == comment_id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.user_email != current_user_email:
+        raise HTTPException(status_code=403, detail="No permission to delete this comment")
+    db.delete(comment)
+    db.commit()
+    return {"message": "Comment deleted successfully"}
 
 # 获取用户对帖子的投票状态
 @app.get("/posts/{post_id}/vote")
@@ -427,11 +567,28 @@ async def get_current_user_profile(
         user_name=user.user_name,
         user_email=user.user_email,
         avatar=user.avatar,
-        signature=user.signature
+        signature=user.signature,
+        preferred_tags=user.preferred_tags
     )
 
-# 更新当前用户信息
-@app.put("/users/me")
+# 获取当前用户设置
+@app.get("/users/me/settings")
+async def get_current_user_settings(
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "avatar": user.avatar,
+        "signature": user.signature,
+        "preferred_tags": user.preferred_tags
+    }
+
+
+# 更新当前用户设置
+@app.put("/users/me/settings")
 async def update_current_user_profile(
     request: UserProfileUpdate,
     current_user_email: str = Depends(auth.get_current_user),
@@ -444,6 +601,7 @@ async def update_current_user_profile(
     # Update user profile
     user.avatar = request.avatar
     user.signature = request.signature
+    user.preferred_tags = request.preferred_tags
     
     db.commit()
     
@@ -470,6 +628,7 @@ async def get_user_posts(
             "title": post.title,
             "content": post.content,
             "image_url": post.image_url,
+            "tag": post.tag,
             "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
             "user_name": post.author.user_name,
             "upvotes": post.upvotes,
@@ -500,6 +659,7 @@ async def get_user_favorites(
             "title": post.title,
             "content": post.content,
             "image_url": post.image_url,
+            "tag": post.tag,
             "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
             "user_name": post.author.user_name,
             "upvotes": post.upvotes,
@@ -561,6 +721,85 @@ async def check_favorite_status(
     ).first()
     
     return {"is_favorited": favorite is not None}
+
+
+@app.get("/tags")
+async def list_tags(db: Session = Depends(database.get_db)):
+    tags = db.query(database.Post.tag).distinct().all()
+    return {"tags": sorted([t[0] for t in tags if t and t[0]])}
+
+
+@app.get("/search/posts")
+async def search_posts(keyword: str = Query(default=""), db: Session = Depends(database.get_db)):
+    like_keyword = f"%{keyword}%"
+    posts = db.query(database.Post).filter(
+        (database.Post.title.ilike(like_keyword)) | (database.Post.content.ilike(like_keyword))
+    ).order_by(database.Post.release_time.desc()).all()
+    return [{
+        "id": post.id,
+        "title": post.title,
+        "content": post.content,
+        "image_url": post.image_url,
+        "tag": post.tag,
+        "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "user_name": post.author.user_name,
+        "upvotes": post.upvotes,
+        "downvotes": post.downvotes
+    } for post in posts]
+
+
+@app.get("/notifications")
+async def get_notifications(
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    items = db.query(database.Notification).filter(
+        database.Notification.user_email == current_user_email
+    ).order_by(database.Notification.release_time.desc()).all()
+    unread_count = db.query(database.Notification).filter(
+        database.Notification.user_email == current_user_email,
+        database.Notification.is_read == False
+    ).count()
+    return {
+        "unread_count": unread_count,
+        "notifications": [{
+            "id": item.id,
+            "message": item.message,
+            "notification_type": item.notification_type,
+            "is_read": item.is_read,
+            "release_time": item.release_time.strftime("%Y-%m-%d %H:%M:%S")
+        } for item in items]
+    }
+
+
+@app.put("/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: int,
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    notification = db.query(database.Notification).filter(
+        database.Notification.id == notification_id,
+        database.Notification.user_email == current_user_email
+    ).first()
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    notification.is_read = True
+    db.commit()
+    return {"message": "Notification marked as read"}
+
+
+@app.put("/notifications/read-all")
+async def mark_all_notifications_read(
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    db.query(database.Notification).filter(
+        database.Notification.user_email == current_user_email,
+        database.Notification.is_read == False
+    ).update({"is_read": True})
+    db.commit()
+    return {"message": "All notifications marked as read"}
 
 # 测试接口
 @app.get("/")

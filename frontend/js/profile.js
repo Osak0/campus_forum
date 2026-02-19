@@ -11,6 +11,7 @@ let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadProfile();
+    await loadSettings();
     await loadUserPosts();
     await loadUserFavorites();
 });
@@ -61,24 +62,10 @@ async function loadProfile() {
     }
 }
 
-function showEditProfile() {
-    const editSection = document.getElementById('edit-profile-section');
-    editSection.style.display = 'block';
-    
-    // Pre-fill current values
-    if (currentUser) {
-        document.getElementById('avatar-input').value = currentUser.avatar || '';
-        document.getElementById('signature-input').value = currentUser.signature || '';
-    }
-}
-
-function cancelEdit() {
-    document.getElementById('edit-profile-section').style.display = 'none';
-}
-
-async function saveProfile() {
+async function saveSettings() {
     let avatar = document.getElementById('avatar-input').value.trim();
     const signature = document.getElementById('signature-input').value.trim();
+    const preferredTags = document.getElementById('preferred-tags-input').value.trim();
     const avatarFile = document.getElementById('avatar-file-input').files[0];
     
     try {
@@ -101,21 +88,22 @@ async function saveProfile() {
             }
         }
         
-        const response = await authFetch('/users/me', {
+        const response = await authFetch('/users/me/settings', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 avatar: avatar,
-                signature: signature
+                signature: signature,
+                preferred_tags: preferredTags
             })
         });
         
         if (response && response.ok) {
-            alert('资料更新成功！');
-            document.getElementById('edit-profile-section').style.display = 'none';
+            alert('设置更新成功！');
             await loadProfile(); // Reload profile to show updates
+            await loadSettings();
         } else {
             alert('更新失败，请重试');
         }
@@ -131,16 +119,34 @@ function switchTab(tabName, event) {
     tabBtns.forEach(btn => btn.classList.remove('active'));
     if (event && event.target) {
         event.target.classList.add('active');
+    } else {
+        const targetBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
+        if (targetBtn) targetBtn.classList.add('active');
     }
     
     // Show/hide content
     if (tabName === 'posts') {
         document.getElementById('posts-section').style.display = 'block';
         document.getElementById('favorites-section').style.display = 'none';
+        document.getElementById('settings-section').style.display = 'none';
     } else if (tabName === 'favorites') {
         document.getElementById('posts-section').style.display = 'none';
         document.getElementById('favorites-section').style.display = 'block';
+        document.getElementById('settings-section').style.display = 'none';
+    } else if (tabName === 'settings') {
+        document.getElementById('posts-section').style.display = 'none';
+        document.getElementById('favorites-section').style.display = 'none';
+        document.getElementById('settings-section').style.display = 'block';
     }
+}
+
+async function loadSettings() {
+    const response = await authFetch('/users/me/settings');
+    if (!(response && response.ok)) return;
+    const settings = await response.json();
+    document.getElementById('avatar-input').value = settings.avatar || '';
+    document.getElementById('signature-input').value = settings.signature || '';
+    document.getElementById('preferred-tags-input').value = settings.preferred_tags || '';
 }
 
 async function loadUserPosts() {
@@ -232,10 +238,14 @@ function createPostCard(post) {
     
     const votesSpan = document.createElement('span');
     votesSpan.textContent = `👍 ${post.upvotes} 👎 ${post.downvotes}`;
+
+    const tagSpan = document.createElement('span');
+    tagSpan.textContent = `#${post.tag || '全部'}`;
     
     metaEl.appendChild(authorSpan);
     metaEl.appendChild(timeSpan);
     metaEl.appendChild(votesSpan);
+    metaEl.appendChild(tagSpan);
     
     card.appendChild(titleEl);
     card.appendChild(previewEl);

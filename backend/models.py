@@ -32,6 +32,7 @@ class PostCreate(BaseModel):
     title: str
     content: str
     image_url: str = ""
+    tag: str = "全部"
 
 
 class PostBase(PostCreate):
@@ -71,12 +72,26 @@ class UserProfile(BaseModel):
     user_email: EmailStr
     avatar: str = ""
     signature: str = ""
+    preferred_tags: str = ""
 
 
 class UserProfileUpdate(BaseModel):
     avatar: str = ""
     signature: str = ""
+    preferred_tags: str = ""
 
 
 class FavoriteCreate(BaseModel):
     user_email: EmailStr
+
+
+class PostUpdate(BaseModel):
+    title: str
+    content: str
+    image_url: str = ""
+    tag: str = "全部"
+
+
+class CommentUpdate(BaseModel):
+    content: str = Field(..., max_length=500)
+    image_url: str = ""
