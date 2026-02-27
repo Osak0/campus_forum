@@ -1,6 +1,8 @@
 let currentTag = '全部';
 let currentKeyword = '';
 let tagsCollapsed = false;
+let currentPage = 1;
+const PAGE_SIZE = 20;
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadTagFilters();
@@ -45,11 +47,13 @@ function toggleTags() {
 
 function selectTag(tag) {
     currentTag = tag;
+    currentPage = 1;
     loadPosts();
 }
 
 function searchPosts() {
     currentKeyword = document.getElementById('search-input').value.trim();
+    currentPage = 1;
     loadPosts();
 }
 
@@ -57,6 +61,7 @@ function clearSearch() {
     document.getElementById('search-input').value = '';
     currentKeyword = '';
     currentTag = '全部';
+    currentPage = 1;
     loadPosts();
 }
 
@@ -68,17 +73,23 @@ async function loadPosts() {
         const query = new URLSearchParams();
         if (currentTag && currentTag !== '全部') query.append('tag', currentTag);
         if (currentKeyword) query.append('keyword', currentKeyword);
+        query.append('page', currentPage);
+        query.append('page_size', PAGE_SIZE);
         const response = await fetch(`${API_BASE_URL}/posts/?${query.toString()}`);
 
         if (!response.ok) {
             throw new Error('获取帖子失败');
         }
 
-        const posts = await response.json();
+        const data = await response.json();
+        const posts = data.posts || [];
+        const total = data.total || 0;
+        const totalPages = data.total_pages || 1;
         container.innerHTML = '';
 
         if (posts.length === 0) {
             container.innerHTML = '<p style="text-align:center; color:#666">没有匹配的帖子</p>';
+            renderPagination(container, total, totalPages);
             return;
         }
 
@@ -133,8 +144,55 @@ async function loadPosts() {
             postCard.appendChild(metaEl);
             container.appendChild(postCard);
         });
+
+        renderPagination(container, total, totalPages);
     } catch (error) {
         console.error(error);
         container.innerHTML = '<p style="color:red; text-align:center">加载失败，请检查后端是否运行。</p>';
     }
+}
+
+function renderPagination(container, total, totalPages) {
+    if (totalPages <= 1 || total === 0) return;
+
+    const paginationEl = document.createElement('div');
+    paginationEl.style.display = 'flex';
+    paginationEl.style.alignItems = 'center';
+    paginationEl.style.justifyContent = 'center';
+    paginationEl.style.gap = '10px';
+    paginationEl.style.marginTop = '20px';
+    paginationEl.style.padding = '10px 0';
+
+    const infoEl = document.createElement('span');
+    infoEl.style.color = '#666';
+    infoEl.textContent = `共 ${total} 条帖子，第 ${currentPage} 页 / 共 ${totalPages} 页`;
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'btn btn-sm btn-secondary';
+    prevBtn.textContent = '上一页';
+    prevBtn.disabled = currentPage <= 1;
+    prevBtn.onclick = () => {
+        if (currentPage > 1) {
+            currentPage--;
+            loadPosts();
+            window.scrollTo(0, 0);
+        }
+    };
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-sm btn-secondary';
+    nextBtn.textContent = '下一页';
+    nextBtn.disabled = currentPage >= totalPages;
+    nextBtn.onclick = () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            loadPosts();
+            window.scrollTo(0, 0);
+        }
+    };
+
+    paginationEl.appendChild(prevBtn);
+    paginationEl.appendChild(infoEl);
+    paginationEl.appendChild(nextBtn);
+    container.appendChild(paginationEl);
 }

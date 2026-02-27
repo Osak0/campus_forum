@@ -44,7 +44,6 @@ class PostBase(PostCreate):
 
 
 class CommentCreate(BaseModel):
-    user_email: EmailStr
     content: str = Field(..., max_length=500)
     image_url: str = ""
 
@@ -58,7 +57,6 @@ class CommentBase(CommentCreate):
     downvotes: int = 0
 
 class VoteCreate(BaseModel):
-    user_email: EmailStr
     vote_type: str = Field(..., pattern="^(upvote|downvote)$") 
 
 
@@ -82,7 +80,7 @@ class UserProfileUpdate(BaseModel):
 
 
 class FavoriteCreate(BaseModel):
-    user_email: EmailStr
+    pass
 
 
 class PostUpdate(BaseModel):

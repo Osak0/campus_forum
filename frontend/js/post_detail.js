@@ -287,9 +287,6 @@ async function votePost(voteType) {
         return;
     }
 
-    const userEmail = getUserEmail();
-    if (!userEmail) return;
-
     try {
         const response = await authFetch(`/posts/${postId}/vote`, {
             method: 'POST',
@@ -297,7 +294,6 @@ async function votePost(voteType) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                user_email: userEmail,
                 vote_type: voteType
             })
         });
@@ -485,7 +481,6 @@ async function submitComment() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                user_email: userEmail,
                 content: content,
                 image_url: imageUrl
             })
@@ -511,9 +506,6 @@ async function voteComment(commentId, voteType) {
         return;
     }
 
-    const userEmail = getUserEmail();
-    if (!userEmail) return;
-
     try {
         const response = await authFetch(`/comments/${commentId}/vote`, {
             method: 'POST',
@@ -521,7 +513,6 @@ async function voteComment(commentId, voteType) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                user_email: userEmail,
                 vote_type: voteType
             })
         });
@@ -562,18 +553,12 @@ async function toggleFavorite() {
         return;
     }
 
-    const userEmail = getUserEmail();
-    if (!userEmail) return;
-
     try {
         const response = await authFetch(`/posts/${postId}/favorite`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user_email: userEmail
-            })
+            }
         });
 
         if (response && response.ok) {

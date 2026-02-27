@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -84,6 +84,9 @@ class Vote(Base):
     vote_type = Column(String(20), nullable=False)  # "upvote" or "downvote"
     
     user = relationship("User", back_populates="votes")
+    __table_args__ = (
+        UniqueConstraint('entity_type', 'entity_id', 'user_email', name='uq_vote'),
+    )
 
 
 class Favorite(Base):
@@ -95,6 +98,9 @@ class Favorite(Base):
     
     user = relationship("User", back_populates="favorites")
     post = relationship("Post", back_populates="favorites")
+    __table_args__ = (
+        UniqueConstraint('post_id', 'user_email', name='uq_favorite'),
+    )
 
 
 class Notification(Base):
