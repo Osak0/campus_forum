@@ -27,6 +27,8 @@ app.add_middleware(
 # Create uploads directory if it doesn't exist
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
+# limited uploads
+MAX_FILE_SIZE = 10 * 1024 * 1024
 
 # Mount the uploads directory to serve static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
@@ -38,13 +40,20 @@ async def startup_event():
 
 # Helper function to save uploaded file
 def save_upload_file(upload_file: UploadFile, prefix: str = "") -> str:
-    """Save uploaded file and return the URL path"""
-    # Generate unique filename
+    #判断文件大小是否合理
+    file_size_bytes = upload_file.size
+    file_size_mb = file_size_bytes / (1024 * 1024)
+    if file_size_mb > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=403,
+            detail=f"文件大小超出限制，最大文件大小{MAX_FILE_SIZE / (1024 * 1024)}MB"
+        )
+    
+    # Save file
     file_extension = os.path.splitext(upload_file.filename)[1]
     unique_filename = f"{prefix}_{uuid.uuid4()}{file_extension}"
     file_path = UPLOAD_DIR / unique_filename
     
-    # Save file
     with file_path.open("wb") as buffer:
         shutil.copyfileobj(upload_file.file, buffer)
     
