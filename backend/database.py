@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, Boolean, UniqueConstraint
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, Boolean, UniqueConstraint, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -32,6 +32,8 @@ class User(Base):
     avatar = Column(Text, default="")
     signature = Column(Text, default="")
     preferred_tags = Column(Text, default="")
+    is_admin = Column(Boolean, default=False)
+    is_banned = Column(Boolean, default=False)
     
     posts = relationship("Post", back_populates="author", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="author", cascade="all, delete-orphan")
@@ -52,6 +54,7 @@ class Post(Base):
     user_email = Column(String(255), ForeignKey("users.user_email"), nullable=False)
     upvotes = Column(Integer, default=0)
     downvotes = Column(Integer, default=0)
+    is_hidden = Column(Boolean, default=False)
     
     author = relationship("User", back_populates="posts")
     comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
@@ -129,6 +132,15 @@ def get_db():
 def init_db():
     """Create all tables in the database"""
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        columns = {col["name"] for col in inspect(conn).get_columns("users")}
+        if "is_admin" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+        if "is_banned" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN is_banned BOOLEAN DEFAULT 0"))
+        post_columns = {col["name"] for col in inspect(conn).get_columns("posts")}
+        if "is_hidden" not in post_columns:
+            conn.execute(text("ALTER TABLE posts ADD COLUMN is_hidden BOOLEAN DEFAULT 0"))
     print("Database tables created successfully!")
 
 

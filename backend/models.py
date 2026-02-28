@@ -71,6 +71,8 @@ class UserProfile(BaseModel):
     avatar: str = ""
     signature: str = ""
     preferred_tags: str = ""
+    is_admin: bool = False
+    is_banned: bool = False
 
 
 class UserProfileUpdate(BaseModel):

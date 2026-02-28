@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import auth
 import database
 from models import VoteCreate
-from utils import create_notification
+from utils import create_notification, ensure_not_banned
 
 router = APIRouter()
 
@@ -16,12 +16,13 @@ async def vote(
     db: Session = Depends(database.get_db)
 ):
     post = db.query(database.Post).filter(database.Post.id == post_id).first()
-    if not post:
+    if not post or post.is_hidden:
         raise HTTPException(status_code=404, detail="Post not found")
 
     user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
+    ensure_not_banned(user)
 
     existing_vote = db.query(database.Vote).filter(
         database.Vote.entity_type == "post",
@@ -91,7 +92,7 @@ async def get_vote_status(
     db: Session = Depends(database.get_db)
 ):
     post = db.query(database.Post).filter(database.Post.id == post_id).first()
-    if not post:
+    if not post or post.is_hidden:
         raise HTTPException(status_code=404, detail="Post not found")
 
     vote = db.query(database.Vote).filter(
@@ -113,10 +114,14 @@ async def vote_comment(
     comment = db.query(database.Comment).filter(database.Comment.id == comment_id).first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
+    post = db.query(database.Post).filter(database.Post.id == comment.post_id).first()
+    if not post or post.is_hidden:
+        raise HTTPException(status_code=404, detail="Post not found")
 
     user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
+    ensure_not_banned(user)
 
     existing_vote = db.query(database.Vote).filter(
         database.Vote.entity_type == "comment",
@@ -186,7 +191,7 @@ async def get_comment_vote_status(
     db: Session = Depends(database.get_db)
 ):
     post = db.query(database.Post).filter(database.Post.id == post_id).first()
-    if not post:
+    if not post or post.is_hidden:
         raise HTTPException(status_code=404, detail="Post not found")
 
     comments = db.query(database.Comment).filter(database.Comment.post_id == post_id).all()
