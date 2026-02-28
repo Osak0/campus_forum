@@ -97,6 +97,7 @@ async function loadPosts(append = false) {
             if (!append) {
                 container.innerHTML = '<p style="text-align:center; color:#666">没有匹配的帖子</p>';
             }
+            isLoadingPosts = false;
             renderPagination(container, total);
             return;
         }
@@ -153,12 +154,12 @@ async function loadPosts(append = false) {
             container.appendChild(postCard);
         });
 
+        isLoadingPosts = false;
         renderPagination(container, total);
     } catch (error) {
         console.error(error);
-        container.innerHTML = '<p style="color:red; text-align:center">加载失败，请检查后端是否运行。</p>';
-    } finally {
         isLoadingPosts = false;
+        container.innerHTML = '<p style="color:red; text-align:center">加载失败，请检查后端是否运行。</p>';
     }
 }
 
@@ -183,7 +184,7 @@ function renderPagination(container, total) {
     const loadMoreBtn = document.createElement('button');
     loadMoreBtn.className = 'btn btn-sm btn-secondary';
     loadMoreBtn.textContent = currentPage < totalPages ? '加载更多' : '已加载全部';
-    loadMoreBtn.disabled = currentPage >= totalPages || isLoadingPosts;
+    loadMoreBtn.disabled = currentPage >= totalPages;
     loadMoreBtn.onclick = () => {
         if (currentPage < totalPages && !isLoadingPosts) {
             currentPage++;
