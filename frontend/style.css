@@ -1,8 +1,17 @@
 /* 全局基础样式 */
+:root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --bg: #f3f6fb;
+    --surface: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: #f4f4f9;
-    color: #333;
+    background: linear-gradient(180deg, #f7f9ff 0%, var(--bg) 100%);
+    color: var(--text);
     margin: 0;
     padding: 0;
     line-height: 1.6;
@@ -10,9 +19,10 @@ body {
 
 /* 顶部导航栏 */
 .navbar {
-    background-color: #ffffff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    padding: 1rem 2rem;
+    background-color: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    padding: 0.85rem 1rem;
     display: flex;
     justify-content: space-between; /* 两端对齐：左边LOGO，右边按钮 */
     align-items: center;
@@ -24,7 +34,7 @@ body {
 .navbar h1 {
     margin: 0;
     font-size: 1.5rem;
-    color: #0056b3;
+    color: var(--primary);
     cursor: pointer;
 }
 
@@ -32,13 +42,15 @@ body {
 #auth-buttons {
     display: flex;
     gap: 10px; /* 按钮之间的间距 */
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 /* 通用容器 (限制最大宽度) */
 .container {
     width: 100%;
     max-width: 900px; /*在大屏幕上也不会太宽*/
-    margin: 30px auto;
+    margin: 20px auto;
     padding: 0 20px;
     box-sizing: border-box;
 }
@@ -49,17 +61,17 @@ body {
     max-width: 400px; /* 登录框窄一点好看 */
     margin: 50px auto;
     padding: 2rem;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
 /* 详情页容器 (宽一点) */
 .detail-container {
-    background: white;
+    background: var(--surface);
     padding: 40px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
     max-width: 800px;
     margin: 30px auto;
 }
@@ -119,7 +131,7 @@ textarea {
     font-size: 16px;
     font-weight: 500;
     color: white;
-    background-color: #007bff;
+    background-color: var(--primary);
     border: none;
     border-radius: 6px;
     cursor: pointer;
@@ -129,7 +141,7 @@ textarea {
 }
 
 .btn:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-hover);
     transform: translateY(-1px); /* 悬停微动效 */
 }
 
@@ -157,18 +169,18 @@ textarea {
 
 /* 帖子卡片 (首页列表) */
 .post-card {
-    background: white;
+    background: var(--surface);
     margin-bottom: 20px;
     padding: 25px;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .post-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    border-color: #007bff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    border-color: #bfdbfe;
 }
 
 .post-card h3 {
@@ -182,7 +194,7 @@ textarea {
 }
 
 .post-card h3 a:hover {
-    color: #007bff;
+    color: var(--primary);
 }
 
 .post-meta {
@@ -308,11 +320,47 @@ textarea {
 }
 
 .comment-item {
-    background-color: #f8f9fa;
+    background-color: #f8fafc;
     padding: 15px;
     margin-bottom: 15px;
     border-radius: 8px;
-    border-left: 3px solid #007bff;
+    border-left: 3px solid var(--primary);
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0.75rem;
+        gap: 10px;
+    }
+
+    .navbar h1 {
+        font-size: 1.2rem;
+    }
+
+    #auth-buttons {
+        gap: 8px;
+    }
+
+    .container {
+        padding: 0 12px;
+    }
+
+    .detail-container {
+        margin: 16px 12px;
+        padding: 20px 16px;
+    }
+
+    .profile-avatar-section,
+    .profile-actions,
+    .profile-tabs {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn,
+    .tab-btn {
+        width: 100%;
+    }
 }
 
 .comment-header {

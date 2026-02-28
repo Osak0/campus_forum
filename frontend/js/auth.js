@@ -97,5 +97,67 @@ function logout() {
     window.location.href = "index.html";
 }
 
+function initMobileAppShell() {
+    if (!document.head) return;
+
+    const ensureTag = (selector, createTag) => {
+        if (!document.head.querySelector(selector)) {
+            document.head.appendChild(createTag());
+        }
+    };
+
+    ensureTag('link[rel="manifest"]', () => {
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = 'manifest.webmanifest';
+        return link;
+    });
+
+    ensureTag('meta[name="theme-color"]', () => {
+        const meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        meta.content = '#2563eb';
+        return meta;
+    });
+
+    ensureTag('meta[name="apple-mobile-web-app-capable"]', () => {
+        const meta = document.createElement('meta');
+        meta.name = 'apple-mobile-web-app-capable';
+        meta.content = 'yes';
+        return meta;
+    });
+
+    ensureTag('meta[name="mobile-web-app-capable"]', () => {
+        const meta = document.createElement('meta');
+        meta.name = 'mobile-web-app-capable';
+        meta.content = 'yes';
+        return meta;
+    });
+
+    ensureTag('meta[name="apple-mobile-web-app-status-bar-style"]', () => {
+        const meta = document.createElement('meta');
+        meta.name = 'apple-mobile-web-app-status-bar-style';
+        meta.content = 'default';
+        return meta;
+    });
+
+    const canRegisterSW = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if ('serviceWorker' in navigator && canRegisterSW) {
+        navigator.serviceWorker.getRegistration().then((registration) => {
+            if (registration) return;
+            navigator.serviceWorker.register('sw.js').catch((error) => {
+                console.warn('Service Worker 注册失败:', error);
+                if (!sessionStorage.getItem('pwa_init_warned')) {
+                    sessionStorage.setItem('pwa_init_warned', '1');
+                    console.warn('移动端离线能力初始化失败，页面仍可正常在线使用。');
+                }
+            });
+        });
+    }
+}
+
 // 页面加载完成后自动更新导航栏
-document.addEventListener('DOMContentLoaded', updateNavbar);
+document.addEventListener('DOMContentLoaded', () => {
+    initMobileAppShell();
+    updateNavbar();
+});

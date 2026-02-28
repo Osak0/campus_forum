@@ -18,6 +18,7 @@ Thanks a lot for your support.
 - 个人主页与设置页签 (Personal profile with settings tab)
 - 本地头像上传 (Local avatar upload)
 - MySQL 数据库支持 (MySQL database support)
+- 移动端适配优化与 PWA 基础支持 (Mobile-friendly UI with basic PWA support)
 
 ## Tech Stack / 技术栈
 
@@ -114,6 +115,14 @@ npx http-server -p 3000
 ```
 
 The frontend will be available at `http://localhost:3000`
+
+### 7. PWA / 移动端 App 基础能力
+
+Frontend now includes:
+
+- `manifest.webmanifest` (standalone display / app theme)
+- `sw.js` service worker for static asset caching
+- mobile web app meta tags (theme color + web app capable)
 
 ## Usage / 使用说明
 
