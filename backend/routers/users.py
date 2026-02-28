@@ -15,7 +15,7 @@ async def create_user(request: UserCreate, db: Session = Depends(database.get_db
     existing_user = db.query(database.User).filter(database.User.user_email == request.user_email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    has_admin = db.query(database.User).filter(database.User.is_admin.is_(True)).first()
+    existing_admin = db.query(database.User).filter(database.User.is_admin.is_(True)).first()
 
     hashed_password = auth.get_hashed_password(request.password)
     new_user = database.User(
@@ -24,7 +24,7 @@ async def create_user(request: UserCreate, db: Session = Depends(database.get_db
         hashed_password=hashed_password,
         avatar="",
         signature="",
-        is_admin=has_admin is None
+        is_admin=existing_admin is None
     )
     db.add(new_user)
     db.commit()
