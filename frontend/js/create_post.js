@@ -5,8 +5,10 @@ if (!isLoggedIn()) {
 }
 
 // 2. 监听表单提交
+let isSubmitting = false;
 document.getElementById('createPostForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     
     const title = document.getElementById('title').value;
     const content = document.getElementById('content').value;
@@ -19,8 +21,11 @@ document.getElementById('createPostForm').addEventListener('submit', async (e) =
     }
 
     const submitBtn = e.target.querySelector('button');
+    const loadingEl = document.getElementById('post-loading');
+    isSubmitting = true;
     submitBtn.disabled = true; // 防止重复点击
     submitBtn.textContent = "发布中...";
+    if (loadingEl) loadingEl.classList.remove('hidden');
 
     try {
         let imageUrl = "";
@@ -40,8 +45,10 @@ document.getElementById('createPostForm').addEventListener('submit', async (e) =
                 imageUrl = `${API_BASE_URL}${uploadResult.file_url}`;
             } else {
                 alert('上传图片失败，请重试');
+                isSubmitting = false;
                 submitBtn.disabled = false;
                 submitBtn.textContent = "发布";
+                if (loadingEl) loadingEl.classList.add('hidden');
                 return;
             }
         }
@@ -58,13 +65,17 @@ document.getElementById('createPostForm').addEventListener('submit', async (e) =
             window.location.href = 'index.html'; // 成功后跳回首页
         } else {
             alert('发布失败，请重试');
+            isSubmitting = false;
             submitBtn.disabled = false;
             submitBtn.textContent = "发布";
+            if (loadingEl) loadingEl.classList.add('hidden');
         }
     } catch (error) {
         console.error(error);
         alert('网络错误');
+        isSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.textContent = "发布";
+        if (loadingEl) loadingEl.classList.add('hidden');
     }
 });

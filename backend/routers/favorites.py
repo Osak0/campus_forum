@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 import auth
 import database
+from utils import ensure_not_banned
 
 router = APIRouter()
 
@@ -13,8 +14,12 @@ async def toggle_favorite(
     db: Session = Depends(database.get_db)
 ):
     post = db.query(database.Post).filter(database.Post.id == post_id).first()
-    if not post:
+    if not post or post.is_hidden:
         raise HTTPException(status_code=404, detail="Post not found")
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+    ensure_not_banned(user)
 
     favorite = db.query(database.Favorite).filter(
         database.Favorite.post_id == post_id,
@@ -42,7 +47,7 @@ async def check_favorite_status(
     db: Session = Depends(database.get_db)
 ):
     post = db.query(database.Post).filter(database.Post.id == post_id).first()
-    if not post:
+    if not post or post.is_hidden:
         raise HTTPException(status_code=404, detail="Post not found")
 
     favorite = db.query(database.Favorite).filter(

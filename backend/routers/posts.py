@@ -5,6 +5,7 @@ import math
 import auth
 import database
 from models import PostCreate, PostUpdate
+from utils import ensure_admin, ensure_not_banned, validate_no_sensitive_words
 
 router = APIRouter()
 
@@ -18,6 +19,8 @@ async def create_post(
     user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
+    ensure_not_banned(user)
+    validate_no_sensitive_words(request.title, request.content)
 
     new_post = database.Post(
         title=request.title,
@@ -46,6 +49,7 @@ async def list_posts(
     db: Session = Depends(database.get_db)
 ):
     query = db.query(database.Post)
+    query = query.filter(database.Post.is_hidden.is_(False))
     if tag and tag != "全部":
         query = query.filter(database.Post.tag == tag)
     if keyword:
@@ -85,7 +89,7 @@ async def list_posts(
 @router.get("/posts/{post_id}")
 async def get_post(post_id: int, db: Session = Depends(database.get_db)):
     post = db.query(database.Post).filter(database.Post.id == post_id).first()
-    if not post:
+    if not post or post.is_hidden:
         raise HTTPException(status_code=404, detail="Post not found")
 
     return {
@@ -114,6 +118,11 @@ async def update_post(
         raise HTTPException(status_code=404, detail="Post not found")
     if post.user_email != current_user_email:
         raise HTTPException(status_code=403, detail="No permission to edit this post")
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+    ensure_not_banned(user)
+    validate_no_sensitive_words(request.title, request.content)
 
     post.title = request.title
     post.content = request.content
@@ -137,6 +146,44 @@ async def delete_post(
     db.delete(post)
     db.commit()
     return {"message": "Post deleted successfully"}
+
+
+@router.post("/admin/posts/{post_id}/hide")
+async def hide_post(
+    post_id: int,
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    current_user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not current_user:
+        raise HTTPException(status_code=400, detail="User not found")
+    ensure_admin(current_user)
+
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    post.is_hidden = True
+    db.commit()
+    return {"message": "Post hidden successfully"}
+
+
+@router.post("/admin/posts/{post_id}/unhide")
+async def unhide_post(
+    post_id: int,
+    current_user_email: str = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    current_user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not current_user:
+        raise HTTPException(status_code=400, detail="User not found")
+    ensure_admin(current_user)
+
+    post = db.query(database.Post).filter(database.Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    post.is_hidden = False
+    db.commit()
+    return {"message": "Post unhidden successfully"}
 
 
 @router.get("/tags")

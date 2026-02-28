@@ -1,6 +1,7 @@
 // 从浏览器地址栏获取 id 参数 (例如 post_detail.html?id=123)
 const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
+let isCurrentUserAdmin = false;
 
 // 获取用户邮箱的辅助函数
 function getUserEmail() {
@@ -38,6 +39,11 @@ async function loadPostDetail() {
             let userVote = null;
             let isFavorited = false;
             if (isLoggedIn()) {
+                const meResponse = await authFetch('/users/me');
+                if (meResponse && meResponse.ok) {
+                    const me = await meResponse.json();
+                    isCurrentUserAdmin = !!me.is_admin;
+                }
                 const voteResponse = await authFetch(`/posts/${postId}/vote`);
                 if (voteResponse && voteResponse.ok) {
                     const voteData = await voteResponse.json();
@@ -182,6 +188,29 @@ async function loadPostDetail() {
                 postActionSection.appendChild(deleteBtn);
 
                 container.appendChild(postActionSection);
+            }
+
+            if (isLoggedIn() && isCurrentUserAdmin) {
+                const adminActionSection = document.createElement('div');
+                adminActionSection.style.marginTop = '10px';
+                adminActionSection.style.display = 'flex';
+                adminActionSection.style.gap = '10px';
+
+                const hideBtn = document.createElement('button');
+                hideBtn.className = 'btn btn-sm';
+                hideBtn.style.backgroundColor = '#6f42c1';
+                hideBtn.textContent = '屏蔽帖子';
+                hideBtn.onclick = hidePostByAdmin;
+                adminActionSection.appendChild(hideBtn);
+
+                const banBtn = document.createElement('button');
+                banBtn.className = 'btn btn-sm';
+                banBtn.style.backgroundColor = '#dc3545';
+                banBtn.textContent = '封禁作者';
+                banBtn.onclick = () => banPostAuthor(post.user_email);
+                adminActionSection.appendChild(banBtn);
+
+                container.appendChild(adminActionSection);
             }
             
             // Separator
@@ -645,5 +674,26 @@ async function deleteComment(commentId) {
         await loadComments();
     } else {
         alert('删除评论失败');
+    }
+}
+
+async function hidePostByAdmin() {
+    if (!confirm('确认屏蔽该帖子吗？')) return;
+    const response = await authFetch(`/admin/posts/${postId}/hide`, { method: 'POST' });
+    if (response && response.ok) {
+        alert('帖子已屏蔽');
+        window.location.href = 'index.html';
+    } else {
+        alert('屏蔽帖子失败');
+    }
+}
+
+async function banPostAuthor(userEmail) {
+    if (!userEmail || !confirm('确认封禁该用户吗？')) return;
+    const response = await authFetch(`/admin/users/${encodeURIComponent(userEmail)}/ban`, { method: 'POST' });
+    if (response && response.ok) {
+        alert('用户已封禁');
+    } else {
+        alert('封禁用户失败');
     }
 }

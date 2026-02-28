@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 import auth
 import database
 from models import CommentCreate, CommentUpdate
-from utils import create_notification
+from utils import create_notification, ensure_not_banned, validate_no_sensitive_words
 
 router = APIRouter()
 
@@ -17,12 +17,14 @@ async def create_comment(
     db: Session = Depends(database.get_db)
 ):
     post = db.query(database.Post).filter(database.Post.id == post_id).first()
-    if not post:
+    if not post or post.is_hidden:
         raise HTTPException(status_code=404, detail="Post not found")
 
     user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
+    ensure_not_banned(user)
+    validate_no_sensitive_words(request.content)
 
     new_comment = database.Comment(
         post_id=post_id,
@@ -51,7 +53,7 @@ async def create_comment(
 @router.get("/posts/{post_id}/comments")
 async def get_comments(post_id: int, db: Session = Depends(database.get_db)):
     post = db.query(database.Post).filter(database.Post.id == post_id).first()
-    if not post:
+    if not post or post.is_hidden:
         raise HTTPException(status_code=404, detail="Post not found")
 
     comments = db.query(database.Comment).filter(
@@ -87,6 +89,11 @@ async def update_comment(
         raise HTTPException(status_code=404, detail="Comment not found")
     if comment.user_email != current_user_email:
         raise HTTPException(status_code=403, detail="No permission to edit this comment")
+    user = db.query(database.User).filter(database.User.user_email == current_user_email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+    ensure_not_banned(user)
+    validate_no_sensitive_words(request.content)
     comment.content = request.content
     comment.image_url = request.image_url
     db.commit()

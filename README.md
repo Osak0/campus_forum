@@ -12,11 +12,13 @@ Thanks a lot for your support.
 - 帖子和评论支持图片 (Posts and comments support images)
 - 帖子标签分类与筛选 (Post tags and filtering)
 - 帖子关键词模糊搜索 (Fuzzy search by title/content)
+- 帖子分页与增量加载 (Post pagination with incremental loading)
 - 通知中心（回复/点赞/反对，已读未读） (Notification center with read/unread)
 - 点赞和踩 (Upvote and downvote)
 - 收藏帖子 (Favorite posts)
 - 个人主页与设置页签 (Personal profile with settings tab)
 - 本地头像上传 (Local avatar upload)
+- 敏感词拦截与管理员治理（屏蔽帖子/封禁用户） (Sensitive-word moderation and admin controls)
 - MySQL 数据库支持 (MySQL database support)
 - 移动端适配优化与 PWA 基础支持 (Mobile-friendly UI with basic PWA support)
 
@@ -181,6 +183,10 @@ Frontend now includes:
 - `GET /notifications` - Get notification list
 - `PUT /notifications/{id}/read` - Mark one notification as read
 - `PUT /notifications/read-all` - Mark all notifications as read
+- `POST /admin/posts/{id}/hide` - Hide a post (admin)
+- `POST /admin/posts/{id}/unhide` - Unhide a post (admin)
+- `POST /admin/users/{email}/ban` - Ban user (admin)
+- `POST /admin/users/{email}/unban` - Unban user (admin)
 
 ## Development / 开发
 

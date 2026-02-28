@@ -3,6 +3,8 @@ let currentKeyword = '';
 let tagsCollapsed = false;
 let currentPage = 1;
 const PAGE_SIZE = 20;
+let totalPages = 1;
+let isLoadingPosts = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadTagFilters();
@@ -48,13 +50,13 @@ function toggleTags() {
 function selectTag(tag) {
     currentTag = tag;
     currentPage = 1;
-    loadPosts();
+    loadPosts(false);
 }
 
 function searchPosts() {
     currentKeyword = document.getElementById('search-input').value.trim();
     currentPage = 1;
-    loadPosts();
+    loadPosts(false);
 }
 
 function clearSearch() {
@@ -62,12 +64,16 @@ function clearSearch() {
     currentKeyword = '';
     currentTag = '全部';
     currentPage = 1;
-    loadPosts();
+    loadPosts(false);
 }
 
-async function loadPosts() {
+async function loadPosts(append = false) {
+    if (isLoadingPosts) return;
+    isLoadingPosts = true;
     const container = document.getElementById('posts-container');
-    container.innerHTML = '<p style="text-align:center">正在加载帖子...</p>';
+    if (!append) {
+        container.innerHTML = '<p style="text-align:center">正在加载帖子...</p>';
+    }
 
     try {
         const query = new URLSearchParams();
@@ -84,12 +90,15 @@ async function loadPosts() {
         const data = await response.json();
         const posts = data.posts || [];
         const total = data.total || 0;
-        const totalPages = data.total_pages || 1;
-        container.innerHTML = '';
+        totalPages = data.total_pages || 1;
+        if (!append) container.innerHTML = '';
 
         if (posts.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#666">没有匹配的帖子</p>';
-            renderPagination(container, total, totalPages);
+            if (!append) {
+                container.innerHTML = '<p style="text-align:center; color:#666">没有匹配的帖子</p>';
+            }
+            isLoadingPosts = false;
+            renderPagination(container, total);
             return;
         }
 
@@ -145,17 +154,22 @@ async function loadPosts() {
             container.appendChild(postCard);
         });
 
-        renderPagination(container, total, totalPages);
+        isLoadingPosts = false;
+        renderPagination(container, total);
     } catch (error) {
         console.error(error);
+        isLoadingPosts = false;
         container.innerHTML = '<p style="color:red; text-align:center">加载失败，请检查后端是否运行。</p>';
     }
 }
 
-function renderPagination(container, total, totalPages) {
+function renderPagination(container, total) {
+    const oldPagination = document.getElementById('posts-pagination');
+    if (oldPagination) oldPagination.remove();
     if (totalPages <= 1 || total === 0) return;
 
     const paginationEl = document.createElement('div');
+    paginationEl.id = 'posts-pagination';
     paginationEl.style.display = 'flex';
     paginationEl.style.alignItems = 'center';
     paginationEl.style.justifyContent = 'center';
@@ -165,34 +179,20 @@ function renderPagination(container, total, totalPages) {
 
     const infoEl = document.createElement('span');
     infoEl.style.color = '#666';
-    infoEl.textContent = `共 ${total} 条帖子，第 ${currentPage} 页 / 共 ${totalPages} 页`;
+    infoEl.textContent = `已加载第 ${currentPage} 页 / 共 ${totalPages} 页（共 ${total} 条帖子）`;
 
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'btn btn-sm btn-secondary';
-    prevBtn.textContent = '上一页';
-    prevBtn.disabled = currentPage <= 1;
-    prevBtn.onclick = () => {
-        if (currentPage > 1) {
-            currentPage--;
-            loadPosts();
-            window.scrollTo(0, 0);
-        }
-    };
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'btn btn-sm btn-secondary';
-    nextBtn.textContent = '下一页';
-    nextBtn.disabled = currentPage >= totalPages;
-    nextBtn.onclick = () => {
-        if (currentPage < totalPages) {
+    const loadMoreBtn = document.createElement('button');
+    loadMoreBtn.className = 'btn btn-sm btn-secondary';
+    loadMoreBtn.textContent = currentPage < totalPages ? '加载更多' : '已加载全部';
+    loadMoreBtn.disabled = currentPage >= totalPages;
+    loadMoreBtn.onclick = () => {
+        if (currentPage < totalPages && !isLoadingPosts) {
             currentPage++;
-            loadPosts();
-            window.scrollTo(0, 0);
+            loadPosts(true);
         }
     };
 
-    paginationEl.appendChild(prevBtn);
     paginationEl.appendChild(infoEl);
-    paginationEl.appendChild(nextBtn);
+    paginationEl.appendChild(loadMoreBtn);
     container.appendChild(paginationEl);
 }
