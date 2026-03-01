@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通知中心 - 交个朋友</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="navbar">
+        <a href="index.html" style="text-decoration:none;"><h1>交个朋友</h1></a>
+        <div id="auth-buttons"></div>
+    </div>
+    <div class="container" style="max-width: 900px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>通知中心</h2>
+            <button class="btn btn-secondary btn-sm" onclick="markAllRead()">全部标记为已读</button>
+        </div>
+        <div id="notifications-list">
+            <p style="text-align:center; color:#888;">加载中...</p>
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - XJTU论坛</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h2 class="text-center">欢迎回来</h2>
+        
+        <form id="loginForm">
+            <!-- 错误提示框 -->
+            <div id="errorMsg" class="error-msg">用户名或密码错误</div>
+            
+            <label>邮箱</label>
+            <!-- 注意 name="username" 是为了配合后端 OAuth2 标准 -->
+            <input type="email" name="username" required placeholder="example@xjtu.edu.cn">
+            
+            <label>密码</label>
+            <input type="password" name="password" required>
+            
+            <button type="submit" class="btn btn-block">登录</button>
+            
+            <p class="text-center" style="margin-top: 15px;">
+                还没有账号？<a href="register.html">去注册</a>
+                <br>
+                <a href="index.html" style="font-size: 0.9em; color: #888;">返回首页</a>
+            </p>
+        </form>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>

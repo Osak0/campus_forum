@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - XJTU论坛</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h2 class="text-center">新用户注册</h2>
+        
+        <form id="registerForm">
+            <label>邮箱</label>
+            <input type="email" id="email" required placeholder="example@xjtu.edu.cn">
+            
+            <label>昵称</label>
+            <input type="text" id="username" required placeholder="你的论坛昵称">
+            
+            <label>密码 (至少6位)</label>
+            <input type="password" id="password" minlength="6" required>
+            
+            <button type="submit" class="btn btn-block" style="background-color: #28a745;">注册</button>
+            
+            <p class="text-center" style="margin-top: 15px;">
+                已有账号？<a href="login.html">去登录</a>
+                <br>
+                <a href="index.html" style="font-size: 0.9em; color: #888;">返回首页</a>
+            </p>
+        </form>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/register.js"></script>
+</body>
+</html>
