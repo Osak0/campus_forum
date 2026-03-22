@@ -24,7 +24,7 @@ async def create_comment(
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
     ensure_not_banned(user)
-    validate_no_sensitive_words(request.content)
+    validate_no_sensitive_words(db, request.content)
 
     new_comment = database.Comment(
         post_id=post_id,
@@ -93,7 +93,7 @@ async def update_comment(
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
     ensure_not_banned(user)
-    validate_no_sensitive_words(request.content)
+    validate_no_sensitive_words(db, request.content)
     comment.content = request.content
     comment.image_url = request.image_url
     db.commit()

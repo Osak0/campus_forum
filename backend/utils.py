@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 import database
 
-SENSITIVE_WORDS = ("色情", "赌博", "毒品", "暴恐", "极端主义", "政治敏感")
+FALLBACK_SENSITIVE_WORDS = ("色情", "赌博", "毒品", "暴恐", "极端主义", "政治敏感")
 
 
 def create_notification(db: Session, user_email: str, message: str, notification_type: str):
@@ -31,8 +31,26 @@ def ensure_admin(user: database.User):
         raise HTTPException(status_code=403, detail="Admin permission required")
 
 
-def validate_no_sensitive_words(*texts: str):
-    for text in texts:
-        for word in SENSITIVE_WORDS:
-            if word and word in text:
-                raise HTTPException(status_code=400, detail="内容包含敏感词，请修改后再提交")
+def get_sensitive_words(db: Session) -> list[str]:
+    """Fetch sensitive words from database, fallback to hardcoded list."""
+    try:
+        words = db.query(database.SensitiveWord.word).all()
+        if words:
+            return [w[0] for w in words]
+    except Exception:
+        pass
+    return list(FALLBACK_SENSITIVE_WORDS)
+
+
+def validate_no_sensitive_words(db: Session, *texts: str):
+    """Check texts against sensitive words from database."""
+    words = get_sensitive_words(db)
+    for text_content in texts:
+        if not text_content:
+            continue
+        for word in words:
+            if word and word in text_content:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"内容包含敏感词「{word}」，请修改后再提交"
+                )

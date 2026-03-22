@@ -20,13 +20,14 @@ async def create_post(
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
     ensure_not_banned(user)
-    validate_no_sensitive_words(request.title, request.content)
+    validate_no_sensitive_words(db, request.title, request.content)
 
     new_post = database.Post(
         title=request.title,
         content=request.content,
         image_url=request.image_url,
         tag=request.tag,
+        board_id=request.board_id,
         user_email=current_user_email,
         release_time=datetime.now(),
         upvotes=0,
@@ -44,6 +45,7 @@ async def create_post(
 async def list_posts(
     tag: str | None = Query(default=None),
     keyword: str | None = Query(default=None),
+    board_id: int | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(database.get_db)
@@ -52,11 +54,23 @@ async def list_posts(
     query = query.filter(database.Post.is_hidden.is_(False))
     if tag and tag != "全部":
         query = query.filter(database.Post.tag == tag)
+    if board_id is not None:
+        query = query.filter(database.Post.board_id == board_id)
     if keyword:
         like_keyword = f"%{keyword}%"
         query = query.filter(
             (database.Post.title.ilike(like_keyword)) | (database.Post.content.ilike(like_keyword))
         )
+        
+        # Record search history
+        existing_search = db.query(database.SearchHistory).filter(database.SearchHistory.keyword == keyword).first()
+        if existing_search:
+            existing_search.count += 1
+            existing_search.last_searched = datetime.now()
+        else:
+            new_search = database.SearchHistory(keyword=keyword, count=1, last_searched=datetime.now())
+            db.add(new_search)
+        db.commit()
 
     total = query.count()
     posts = query.order_by(database.Post.release_time.desc()).offset((page - 1) * page_size).limit(page_size).all()
@@ -69,6 +83,8 @@ async def list_posts(
             "content": post.content,
             "image_url": post.image_url,
             "tag": post.tag,
+            "board_id": post.board_id,
+            "board_name": post.board.name if post.board else None,
             "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
             "user_name": post.author.user_name,
             "upvotes": post.upvotes,
@@ -98,6 +114,8 @@ async def get_post(post_id: int, db: Session = Depends(database.get_db)):
         "content": post.content,
         "image_url": post.image_url,
         "tag": post.tag,
+        "board_id": post.board_id,
+        "board_name": post.board.name if post.board else None,
         "user_email": post.user_email,
         "release_time": post.release_time.strftime("%Y-%m-%d %H:%M:%S"),
         "user_name": post.author.user_name,
@@ -122,12 +140,13 @@ async def update_post(
     if not user:
         raise HTTPException(status_code=400, detail="User not found")
     ensure_not_banned(user)
-    validate_no_sensitive_words(request.title, request.content)
+    validate_no_sensitive_words(db, request.title, request.content)
 
     post.title = request.title
     post.content = request.content
     post.image_url = request.image_url
     post.tag = request.tag
+    post.board_id = request.board_id
     db.commit()
     return {"message": "Post updated successfully"}
 
@@ -190,3 +209,9 @@ async def unhide_post(
 async def list_tags(db: Session = Depends(database.get_db)):
     tags = db.query(database.Post.tag).distinct().all()
     return {"tags": sorted([t[0] for t in tags if t and t[0]])}
+
+
+@router.get("/trending-searches")
+async def get_trending_searches(db: Session = Depends(database.get_db)):
+    searches = db.query(database.SearchHistory).order_by(database.SearchHistory.count.desc()).limit(10).all()
+    return {"trending": [s.keyword for s in searches]}

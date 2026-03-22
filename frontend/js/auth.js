@@ -57,12 +57,26 @@ async function authFetch(endpoint, options = {}) {
 }
 
 // --- 通用：页面加载时检查导航栏状态 ---
-function updateNavbar() {
+async function updateNavbar() {
     const authContainer = document.getElementById('auth-buttons');
     if (!authContainer) return; // 如果页面没有导航栏容器，就不执行
 
     if (isLoggedIn()) {
+        let adminLink = '';
+        try {
+            const response = await authFetch('/users/me');
+            if (response && response.ok) {
+                const user = await response.json();
+                if (user.is_admin) {
+                    adminLink = `<a href="admin.html" class="btn btn-sm" style="background:#7c3aed;">⚙️ 管理</a>`;
+                }
+            }
+        } catch (e) {
+            console.error('检查管理员权限失败:', e);
+        }
+        
         authContainer.innerHTML = `
+            ${adminLink}
             <a href="create_post.html" class="btn btn-sm">➕ 发帖</a>
             <a href="notifications.html" class="btn btn-sm btn-secondary" id="notification-link">🔔 通知</a>
             <a href="profile.html" class="btn btn-sm btn-secondary">我的主页</a>

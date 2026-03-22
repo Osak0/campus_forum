@@ -553,3 +553,86 @@ textarea {
     background-color: #ff9800;
     border-color: #ff9800;
 }
+
+/* 板块导航样式 */
+.boards-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 0;
+}
+
+.board-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    background-color: #f0f4f8;
+    border: 1px solid #d1d5db;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #4b5563;
+}
+
+.board-btn:hover {
+    background-color: #e5e7eb;
+    border-color: #9ca3af;
+}
+
+.board-btn.active {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* 热门搜索标签样式 */
+.trending-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 12px;
+    background-color: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #92400e;
+}
+
+.trending-tag:hover {
+    background-color: #fde68a;
+    border-color: #f59e0b;
+}
+
+/* 折叠帖子样式 */
+.post-collapsed {
+    padding: 12px 20px;
+    background-color: #f9fafb;
+}
+
+.post-collapsed:hover {
+    background-color: #f3f4f6;
+}
+
+/* 状态徽章样式 */
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-resolved {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}

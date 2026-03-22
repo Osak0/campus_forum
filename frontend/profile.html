@@ -36,6 +36,8 @@
         <div class="profile-tabs">
             <button class="tab-btn active" onclick="switchTab('posts', event)">📝 我的帖子</button>
             <button class="tab-btn" onclick="switchTab('favorites', event)">⭐ 我的收藏</button>
+            <button class="tab-btn" onclick="switchTab('reports', event)">🔔 我的举报</button>
+            <button class="tab-btn" onclick="switchTab('feedback', event)">💬 我的反馈</button>
             <button class="tab-btn" onclick="switchTab('settings', event)">⚙️ 设置</button>
         </div>
 
@@ -49,6 +51,23 @@
         <!-- Favorites Section -->
         <div id="favorites-section" class="tab-content" style="display: none;">
             <div id="my-favorites-list" class="posts-grid">
+                <p style="text-align:center; color:#888; padding: 40px 0;">加载中...</p>
+            </div>
+        </div>
+
+        <!-- My Reports Section -->
+        <div id="reports-section" class="tab-content" style="display: none;">
+            <div id="my-reports-list" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <p style="text-align:center; color:#888; padding: 40px 0;">加载中...</p>
+            </div>
+        </div>
+
+        <!-- My Feedback Section -->
+        <div id="feedback-section" class="tab-content" style="display: none;">
+            <div style="margin-bottom: 20px;">
+                <button onclick="showFeedbackForm()" class="btn">➕ 提交新反馈</button>
+            </div>
+            <div id="my-feedback-list" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                 <p style="text-align:center; color:#888; padding: 40px 0;">加载中...</p>
             </div>
         </div>

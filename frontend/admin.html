@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员后台 - XJTU 校园论坛</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .admin-tab {
+            padding: 10px 20px;
+            background: #f0f4f8;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .admin-tab:hover {
+            background: #e5e7eb;
+        }
+        .admin-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .admin-section {
+            display: none;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .admin-section.active {
+            display: block;
+        }
+        .admin-section h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .admin-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .admin-form input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .admin-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .admin-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .admin-item:last-child {
+            border-bottom: none;
+        }
+        .admin-item-content {
+            flex: 1;
+        }
+        .admin-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .report-item, .feedback-item {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .report-meta, .feedback-meta {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .report-content, .feedback-content {
+            margin-bottom: 12px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-resolved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .reply-form {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+        .reply-form textarea {
+            margin-bottom: 8px;
+        }
+        .board-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .pagination button {
+            padding: 8px 12px;
+        }
+        .pagination button.active {
+            background: var(--primary);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="index.html" style="text-decoration:none;"><h1>交个朋友</h1></a>
+        <div id="auth-buttons"></div>
+    </div>
+
+    <div class="container" style="max-width: 900px; margin: 20px auto;">
+        <h2 style="border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
+            管理员后台
+        </h2>
+
+        <div class="admin-tabs">
+            <button class="admin-tab active" onclick="switchTab('sensitive-words')">敏感词管理</button>
+            <button class="admin-tab" onclick="switchTab('reports')">举报处理</button>
+            <button class="admin-tab" onclick="switchTab('feedback')">用户反馈</button>
+            <button class="admin-tab" onclick="switchTab('boards')">板块管理</button>
+        </div>
+
+        <!-- 敏感词管理 -->
+        <div id="sensitive-words" class="admin-section active">
+            <h3>敏感词管理</h3>
+            <div class="admin-form">
+                <input type="text" id="new-sensitive-word" placeholder="输入新的敏感词...">
+                <button class="btn" onclick="addSensitiveWord()">添加</button>
+            </div>
+            <div id="sensitive-words-list" class="admin-list">
+                <p style="text-align: center; color: #888;">加载中...</p>
+            </div>
+        </div>
+
+        <!-- 举报处理 -->
+        <div id="reports" class="admin-section">
+            <h3>举报处理</h3>
+            <div style="margin-bottom: 16px;">
+                <select id="report-status-filter" onchange="loadReports()">
+                    <option value="pending">待处理</option>
+                    <option value="resolved">已处理</option>
+                    <option value="rejected">已拒绝</option>
+                    <option value="">全部</option>
+                </select>
+            </div>
+            <div id="reports-list" class="admin-list">
+                <p style="text-align: center; color: #888;">加载中...</p>
+            </div>
+            <div id="reports-pagination" class="pagination"></div>
+        </div>
+
+        <!-- 用户反馈 -->
+        <div id="feedback" class="admin-section">
+            <h3>用户反馈</h3>
+            <div style="margin-bottom: 16px;">
+                <select id="feedback-status-filter" onchange="loadFeedback()">
+                    <option value="pending">待处理</option>
+                    <option value="resolved">已处理</option>
+                    <option value="">全部</option>
+                </select>
+            </div>
+            <div id="feedback-list" class="admin-list">
+                <p style="text-align: center; color: #888;">加载中...</p>
+            </div>
+            <div id="feedback-pagination" class="pagination"></div>
+        </div>
+
+        <!-- 板块管理 -->
+        <div id="boards" class="admin-section">
+            <h3>板块管理</h3>
+            <div class="admin-form" style="flex-wrap: wrap;">
+                <input type="text" id="new-board-name" placeholder="板块名称" style="flex: 1; min-width: 150px;">
+                <input type="text" id="new-board-desc" placeholder="板块描述" style="flex: 2; min-width: 200px;">
+                <input type="number" id="new-board-sort" placeholder="排序" style="width: 80px;">
+                <button class="btn" onclick="createBoard()">创建</button>
+            </div>
+            <div id="boards-list" class="admin-list">
+                <p style="text-align: center; color: #888;">加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

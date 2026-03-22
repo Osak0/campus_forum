@@ -33,6 +33,7 @@ class PostCreate(BaseModel):
     content: str
     image_url: str = ""
     tag: str = "全部"
+    board_id: int | None = None
 
 
 class PostBase(PostCreate):
@@ -41,6 +42,7 @@ class PostBase(PostCreate):
     user_name: str
     upvotes: int = 0
     downvotes: int = 0
+    board_name: str | None = None
 
 
 class CommentCreate(BaseModel):
@@ -90,8 +92,40 @@ class PostUpdate(BaseModel):
     content: str
     image_url: str = ""
     tag: str = "全部"
+    board_id: int | None = None
 
 
 class CommentUpdate(BaseModel):
     content: str = Field(..., max_length=500)
     image_url: str = ""
+
+
+class ReportCreate(BaseModel):
+    target_type: str = Field(..., pattern="^(post|comment)$")
+    target_id: int
+    reason: str = Field(..., min_length=1, max_length=500)
+
+
+class ReportResolve(BaseModel):
+    status: str = Field(..., pattern="^(resolved|rejected)$")
+    admin_reply: str = ""
+
+
+class FeedbackCreate(BaseModel):
+    content: str = Field(..., min_length=1, max_length=1000)
+    category: str = Field(default="suggestion", pattern="^(suggestion|bug|appeal)$")
+
+
+class FeedbackReply(BaseModel):
+    admin_reply: str = Field(..., min_length=1)
+    status: str = Field(default="resolved", pattern="^(resolved|pending)$")
+
+
+class BoardCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str = ""
+    sort_order: int = 0
+
+
+class SensitiveWordCreate(BaseModel):
+    word: str = Field(..., min_length=1, max_length=100)

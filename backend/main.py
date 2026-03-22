@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import database
-from routers import users, posts, comments, votes, favorites, notifications, upload
+from routers import users, posts, comments, votes, favorites, notifications, upload, admin_moderation, reports, feedback, boards
 
 
 @asynccontextmanager
@@ -36,6 +36,10 @@ app.include_router(votes.router)
 app.include_router(favorites.router)
 app.include_router(notifications.router)
 app.include_router(upload.router)
+app.include_router(admin_moderation.router)
+app.include_router(reports.router)
+app.include_router(feedback.router)
+app.include_router(boards.router)
 
 
 @app.get("/")

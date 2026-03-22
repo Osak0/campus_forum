@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSettings();
     await loadUserPosts();
     await loadUserFavorites();
+    await loadUserReports();
+    await loadUserFeedback();
 });
 
 async function loadProfile() {
@@ -124,19 +126,18 @@ function switchTab(tabName, event) {
         if (targetBtn) targetBtn.classList.add('active');
     }
     
-    // Show/hide content
-    if (tabName === 'posts') {
-        document.getElementById('posts-section').style.display = 'block';
-        document.getElementById('favorites-section').style.display = 'none';
-        document.getElementById('settings-section').style.display = 'none';
-    } else if (tabName === 'favorites') {
-        document.getElementById('posts-section').style.display = 'none';
-        document.getElementById('favorites-section').style.display = 'block';
-        document.getElementById('settings-section').style.display = 'none';
-    } else if (tabName === 'settings') {
-        document.getElementById('posts-section').style.display = 'none';
-        document.getElementById('favorites-section').style.display = 'none';
-        document.getElementById('settings-section').style.display = 'block';
+    // Hide all sections
+    document.getElementById('posts-section').style.display = 'none';
+    document.getElementById('favorites-section').style.display = 'none';
+    document.getElementById('reports-section').style.display = 'none';
+    document.getElementById('feedback-section').style.display = 'none';
+    document.getElementById('settings-section').style.display = 'none';
+    
+    // Show selected section
+    const sectionId = `${tabName}-section`;
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.style.display = 'block';
     }
 }
 
@@ -202,6 +203,128 @@ async function loadUserFavorites() {
     } catch (error) {
         console.error('加载收藏失败:', error);
         container.innerHTML = '<p style="text-align:center; color:red; padding: 40px 0;">加载失败</p>';
+    }
+}
+
+async function loadUserReports() {
+    const container = document.getElementById('my-reports-list');
+    
+    try {
+        const response = await authFetch('/reports/my');
+        
+        if (response && response.ok) {
+            const data = await response.json();
+            const reports = data.reports || [];
+            
+            if (reports.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#888; padding: 40px 0;">还没有举报记录</p>';
+                return;
+            }
+            
+            container.innerHTML = reports.map(report => {
+                const statusText = report.status === 'pending' ? '待处理' : report.status === 'resolved' ? '已处理' : '已拒绝';
+                const statusClass = `status-${report.status}`;
+                const targetType = report.target_type === 'post' ? '帖子' : '评论';
+                
+                return `
+                    <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="font-size: 0.85em; color: #666; margin-bottom: 8px;">
+                            <span>类型: ${targetType}</span> | 
+                            <span>时间: ${report.created_at}</span>
+                            <span class="status-badge ${statusClass}" style="margin-left: 8px;">${statusText}</span>
+                        </div>
+                        <div><strong>举报原因:</strong> ${report.reason}</div>
+                        ${report.admin_reply ? `<div style="color: #059669; margin-top: 8px;"><strong>管理员回复:</strong> ${report.admin_reply}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            container.innerHTML = '<p style="text-align:center; color:red; padding: 40px 0;">加载失败</p>';
+        }
+    } catch (error) {
+        console.error('加载举报记录失败:', error);
+        container.innerHTML = '<p style="text-align:center; color:red; padding: 40px 0;">加载失败</p>';
+    }
+}
+
+async function loadUserFeedback() {
+    const container = document.getElementById('my-feedback-list');
+    
+    try {
+        const response = await authFetch('/feedback/my');
+        
+        if (response && response.ok) {
+            const data = await response.json();
+            const items = data.feedback || [];
+            
+            if (items.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#888; padding: 40px 0;">还没有反馈记录</p>';
+                return;
+            }
+            
+            const categoryMap = { suggestion: '建议', bug: '问题', appeal: '申诉' };
+            
+            container.innerHTML = items.map(item => {
+                const statusText = item.status === 'pending' ? '待处理' : '已处理';
+                const statusClass = `status-${item.status}`;
+                const category = categoryMap[item.category] || item.category;
+                
+                return `
+                    <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="font-size: 0.85em; color: #666; margin-bottom: 8px;">
+                            <span>分类: ${category}</span> | 
+                            <span>时间: ${item.created_at}</span>
+                            <span class="status-badge ${statusClass}" style="margin-left: 8px;">${statusText}</span>
+                        </div>
+                        <div>${item.content}</div>
+                        ${item.admin_reply ? `<div style="color: #059669; margin-top: 8px;"><strong>管理员回复:</strong> ${item.admin_reply}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            container.innerHTML = '<p style="text-align:center; color:red; padding: 40px 0;">加载失败</p>';
+        }
+    } catch (error) {
+        console.error('加载反馈记录失败:', error);
+        container.innerHTML = '<p style="text-align:center; color:red; padding: 40px 0;">加载失败</p>';
+    }
+}
+
+function showFeedbackForm() {
+    const content = prompt('请输入反馈内容：');
+    if (!content || !content.trim()) return;
+    
+    const categoryOptions = ['suggestion', 'bug', 'appeal'];
+    const categoryLabels = ['建议', '问题', '申诉'];
+    const categoryInput = prompt(`请选择分类（输入数字）：\n1. 建议\n2. 问题\n3. 申诉`);
+    const categoryIndex = parseInt(categoryInput) - 1;
+    
+    if (categoryIndex < 0 || categoryIndex >= categoryOptions.length) {
+        alert('无效的分类选择');
+        return;
+    }
+    
+    submitFeedback(content.trim(), categoryOptions[categoryIndex]);
+}
+
+async function submitFeedback(content, category) {
+    try {
+        const response = await authFetch('/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content, category })
+        });
+        
+        if (response && response.ok) {
+            alert('反馈已提交，感谢你的意见！');
+            await loadUserFeedback();
+        } else {
+            const data = await response.json();
+            alert(data.detail || '提交失败');
+        }
+    } catch (error) {
+        console.error('提交反馈失败:', error);
+        alert('提交失败');
     }
 }
 

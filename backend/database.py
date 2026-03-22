@@ -119,6 +119,67 @@ class Notification(Base):
     user = relationship("User", back_populates="notifications")
 
 
+class SearchHistory(Base):
+    __tablename__ = "search_history"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    keyword = Column(String(100), unique=True, nullable=False)
+    count = Column(Integer, default=1)
+    last_searched = Column(DateTime, default=datetime.now)
+
+
+class SensitiveWord(Base):
+    __tablename__ = "sensitive_words"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    word = Column(String(100), unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+
+
+class Report(Base):
+    __tablename__ = "reports"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    reporter_email = Column(String(255), ForeignKey("users.user_email"), nullable=False)
+    target_type = Column(String(20), nullable=False)  # "post" or "comment"
+    target_id = Column(Integer, nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(20), default="pending")  # pending / resolved / rejected
+    admin_reply = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.now)
+    
+    reporter = relationship("User")
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_email = Column(String(255), ForeignKey("users.user_email"), nullable=False)
+    content = Column(Text, nullable=False)
+    category = Column(String(50), default="suggestion")  # suggestion / bug / appeal
+    status = Column(String(20), default="pending")  # pending / resolved
+    admin_reply = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.now)
+    
+    user = relationship("User")
+
+
+class Board(Base):
+    __tablename__ = "boards"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False)
+    description = Column(Text, default="")
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.now)
+
+
+# Add board_id to Post
+Post.board_id = Column(Integer, ForeignKey("boards.id"), nullable=True)
+Post.board = relationship("Board", lazy="joined")
+
+
 # Dependency to get DB session
 def get_db():
     db = SessionLocal()

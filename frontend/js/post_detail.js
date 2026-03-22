@@ -168,26 +168,37 @@ async function loadPostDetail() {
             
             container.appendChild(voteSection);
 
-            if (isLoggedIn() && getUserEmail() === post.user_email) {
-                const postActionSection = document.createElement('div');
-                postActionSection.style.marginTop = '15px';
-                postActionSection.style.display = 'flex';
-                postActionSection.style.gap = '10px';
+            // User action buttons (for logged in users)
+            if (isLoggedIn()) {
+                const userActionSection = document.createElement('div');
+                userActionSection.style.marginTop = '15px';
+                userActionSection.style.display = 'flex';
+                userActionSection.style.gap = '10px';
 
-                const editBtn = document.createElement('button');
-                editBtn.className = 'btn btn-secondary btn-sm';
-                editBtn.textContent = '编辑帖子';
-                editBtn.onclick = () => editPost(post);
-                postActionSection.appendChild(editBtn);
+                // Report button (for all logged in users)
+                const reportBtn = document.createElement('button');
+                reportBtn.className = 'btn btn-secondary btn-sm';
+                reportBtn.textContent = '举报';
+                reportBtn.onclick = () => reportPost(post.id);
+                userActionSection.appendChild(reportBtn);
 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'btn btn-sm';
-                deleteBtn.style.backgroundColor = '#dc3545';
-                deleteBtn.textContent = '删除帖子';
-                deleteBtn.onclick = deletePost;
-                postActionSection.appendChild(deleteBtn);
+                // Edit and delete buttons (only for post author)
+                if (getUserEmail() === post.user_email) {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'btn btn-secondary btn-sm';
+                    editBtn.textContent = '编辑帖子';
+                    editBtn.onclick = () => editPost(post);
+                    userActionSection.appendChild(editBtn);
 
-                container.appendChild(postActionSection);
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn btn-sm';
+                    deleteBtn.style.backgroundColor = '#dc3545';
+                    deleteBtn.textContent = '删除帖子';
+                    deleteBtn.onclick = deletePost;
+                    userActionSection.appendChild(deleteBtn);
+                }
+
+                container.appendChild(userActionSection);
             }
 
             if (isLoggedIn() && isCurrentUserAdmin) {
@@ -434,19 +445,29 @@ async function loadComments() {
                 downvoteBtn.innerHTML = `👎 <span id="comment-downvote-count-${comment.id}">${comment.downvotes}</span>`;
                 actionsDiv.appendChild(downvoteBtn);
 
-                if (isLoggedIn() && getUserEmail() === comment.user_email) {
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'btn btn-secondary btn-sm';
-                    editBtn.textContent = '编辑';
-                    editBtn.onclick = () => editComment(comment);
-                    actionsDiv.appendChild(editBtn);
+                if (isLoggedIn()) {
+                    // Report button for all logged in users
+                    const reportBtn = document.createElement('button');
+                    reportBtn.className = 'btn btn-secondary btn-sm';
+                    reportBtn.textContent = '举报';
+                    reportBtn.onclick = () => reportComment(comment.id);
+                    actionsDiv.appendChild(reportBtn);
 
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'btn btn-sm';
-                    deleteBtn.style.backgroundColor = '#dc3545';
-                    deleteBtn.textContent = '删除';
-                    deleteBtn.onclick = () => deleteComment(comment.id);
-                    actionsDiv.appendChild(deleteBtn);
+                    // Edit and delete buttons for comment author
+                    if (getUserEmail() === comment.user_email) {
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'btn btn-secondary btn-sm';
+                        editBtn.textContent = '编辑';
+                        editBtn.onclick = () => editComment(comment);
+                        actionsDiv.appendChild(editBtn);
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn btn-sm';
+                        deleteBtn.style.backgroundColor = '#dc3545';
+                        deleteBtn.textContent = '删除';
+                        deleteBtn.onclick = () => deleteComment(comment.id);
+                        actionsDiv.appendChild(deleteBtn);
+                    }
                 }
                 
                 commentDiv.appendChild(actionsDiv);
@@ -695,5 +716,71 @@ async function banPostAuthor(userEmail) {
         alert('用户已封禁');
     } else {
         alert('封禁用户失败');
+    }
+}
+
+async function reportPost(postId) {
+    if (!isLoggedIn()) {
+        alert('请先登录');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    const reason = prompt('请输入举报原因：');
+    if (!reason || !reason.trim()) return;
+    
+    try {
+        const response = await authFetch('/reports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                target_type: 'post',
+                target_id: postId,
+                reason: reason.trim()
+            })
+        });
+        
+        if (response && response.ok) {
+            alert('举报已提交，管理员会尽快处理');
+        } else {
+            const data = await response.json();
+            alert(data.detail || '举报失败');
+        }
+    } catch (error) {
+        console.error('举报失败:', error);
+        alert('举报失败');
+    }
+}
+
+async function reportComment(commentId) {
+    if (!isLoggedIn()) {
+        alert('请先登录');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    const reason = prompt('请输入举报原因：');
+    if (!reason || !reason.trim()) return;
+    
+    try {
+        const response = await authFetch('/reports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                target_type: 'comment',
+                target_id: commentId,
+                reason: reason.trim()
+            })
+        });
+        
+        if (response && response.ok) {
+            alert('举报已提交，管理员会尽快处理');
+        } else {
+            const data = await response.json();
+            alert(data.detail || '举报失败');
+        }
+    } catch (error) {
+        console.error('举报失败:', error);
+        alert('举报失败');
     }
 }
